@@ -1,0 +1,58 @@
+{
+  "prompt": "Design a mobile robot that can inspect manufacturing equipment for 8 hours.",
+  "payload_kg": 5.0,
+  "runtime_hr": 8.0,
+  "max_dimensions_mm": [
+    600.0,
+    450.0,
+    900.0
+  ],
+  "environment": "indoor_industrial",
+  "max_cost_usd": 1500.0,
+  "locomotion_type": "wheeled_4",
+  "sensors_required": [
+    "rgb_camera",
+    "imu",
+    "thermal_camera",
+    "lidar_2d"
+  ],
+  "max_speed_m_s": 1.0,
+  "max_ramp_deg": 8.0,
+  "assumptions": [
+    {
+      "field": "payload_kg",
+      "assumed_value": "5.0 kg",
+      "rationale": "No payload stated; 5 kg covers a typical sensor/tooling package.",
+      "confidence": "medium"
+    },
+    {
+      "field": "environment",
+      "assumed_value": "indoor_industrial",
+      "rationale": "Prompt mentions manufacturing/industrial context.",
+      "confidence": "high"
+    },
+    {
+      "field": "sensors_required",
+      "assumed_value": "rgb + thermal camera, 2D lidar, IMU",
+      "rationale": "Equipment inspection typically needs visual + thermal sensing and lidar for navigation.",
+      "confidence": "medium"
+    },
+    {
+      "field": "max_cost_usd",
+      "assumed_value": "1500 USD",
+      "rationale": "No budget stated; prototype-class budget assumed.",
+      "confidence": "low"
+    },
+    {
+      "field": "max_dimensions_mm",
+      "assumed_value": "600 x 450 x 900 mm",
+      "rationale": "Must pass standard doorways and navigate factory aisles.",
+      "confidence": "medium"
+    }
+  ],
+  "unknowns": [
+    "Floor surface and worst ramp/threshold the robot must cross",
+    "Wireless connectivity and docking/charging strategy",
+    "Required inspection standoff distance and camera resolution"
+  ]
+}

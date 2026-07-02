@@ -1,0 +1,208 @@
+# ============================================================
+# env-space — Environment Variable Documentation
+# Agentic Mechanical Engineer
+# ============================================================
+#
+# This file documents EVERY environment variable the project may use.
+# It is documentation only — actual values go in `.env` (copied from
+# `.env.example`).
+#
+# !! SECURITY WARNING !!
+# Never commit real secrets to this repository. `.env` is gitignored.
+# Never paste keys into code, tests, docs, or commit messages.
+# The SUPABASE_SERVICE_ROLE_KEY and any *_SECRET values are SERVER-ONLY
+# and must never reach a browser/frontend bundle.
+#
+# The deterministic MVP demo (`make demo`) requires NO environment
+# variables at all. Everything below is optional until the feature that
+# uses it is enabled.
+#
+# Format per variable:
+#   NAME | required? | what it does | when needed | how to get it | example
+# ------------------------------------------------------------
+
+# ---------------- Core runtime ----------------
+
+MODEL_PROVIDER
+  Required: optional (default: "deterministic")
+  What: Selects the reasoning backend for the AI agent layer. One of:
+        deterministic | anthropic | openai | openrouter | ollama | vllm | local
+  When: Only when you switch from the deterministic MVP pipeline to
+        LLM-backed agents (Sprint 8+). "deterministic" runs fully offline.
+  How to get: n/a — pick a value.
+  Example: MODEL_PROVIDER=anthropic
+
+MODEL_NAME
+  Required: optional
+  What: The specific model used by the selected provider
+        (e.g. claude-fable-5 for Anthropic, or a local vLLM-served model id).
+  When: Only when MODEL_PROVIDER is not "deterministic".
+  Example: MODEL_NAME=claude-fable-5
+
+STORAGE_DIR
+  Required: optional (default: "./outputs")
+  What: Directory where all generated artifacts (JSON, STL, CSV, reports)
+        are written. Local filesystem is the MVP storage backend.
+  When: Always used; only set it if you want a non-default location.
+  Example: STORAGE_DIR=./outputs
+
+MAX_CAD_COMPLEXITY
+  Required: optional (default: 100000)
+  What: Guardrail — upper bound on CAD job complexity (approximate
+        facet/feature budget) so a bad parameter set cannot generate a
+        multi-gigabyte mesh or hang the CAD kernel.
+  When: Always enforced by the CAD service.
+  Example: MAX_CAD_COMPLEXITY=100000
+
+ALLOW_EXTERNAL_PART_SEARCH
+  Required: optional (default: false)
+  What: Boolean gate. External supplier/part APIs (Nexar/Octopart etc.)
+        are never called unless this is explicitly "true". Keeps the MVP
+        fully offline and prevents surprise API usage/costs.
+  When: Enable only when BOM enrichment via supplier APIs is implemented.
+  Example: ALLOW_EXTERNAL_PART_SEARCH=false
+
+# ---------------- LLM providers (AI agent layer) ----------------
+
+ANTHROPIC_API_KEY
+  Required: optional (required only if MODEL_PROVIDER=anthropic)
+  What: API key for Anthropic Claude/Fable models — the primary
+        reasoning model target for this project.
+  When: LLM-based requirements extraction / architecture proposals.
+  How to get: Anthropic Console -> API Keys.
+  Link: https://console.anthropic.com/
+  Example: ANTHROPIC_API_KEY=your-anthropic-key-here
+
+OPENAI_API_KEY
+  Required: optional (required only if MODEL_PROVIDER=openai)
+  What: API key for OpenAI models as an alternative provider.
+  When: Same as above, with OpenAI backend.
+  How to get: OpenAI platform -> API keys.
+  Link: https://platform.openai.com/api-keys
+  Example: OPENAI_API_KEY=your-openai-key-here
+
+OPENROUTER_API_KEY
+  Required: optional (required only if MODEL_PROVIDER=openrouter)
+  What: API key for OpenRouter — single API that routes to many models
+        (useful for open-weights models without self-hosting).
+  How to get: OpenRouter dashboard -> Keys.
+  Link: https://openrouter.ai/keys
+  Example: OPENROUTER_API_KEY=your-openrouter-key-here
+
+# Note: MODEL_PROVIDER=ollama / vllm / local use a base URL convention
+# (OPENAI-compatible endpoints); no key is needed for a local server.
+# If your local server needs a key, reuse OPENAI_API_KEY with the
+# provider set accordingly.
+
+# ---------------- Persistence (optional) ----------------
+
+DATABASE_URL
+  Required: optional
+  What: Postgres connection string. Unlocks persistent design history
+        instead of filesystem-only storage.
+  When: Only when the Postgres storage backend is enabled (post-MVP).
+  How to get: Your Postgres host, or Supabase project settings ->
+        Database -> Connection string.
+  Example: DATABASE_URL=postgresql://user:password@localhost:5432/mea
+
+SUPABASE_URL
+  Required: optional
+  What: Supabase project URL, if using Supabase for storage/auth.
+  How to get: Supabase dashboard -> Project Settings -> API.
+  Link: https://supabase.com/dashboard
+  Example: SUPABASE_URL=https://your-project.supabase.co
+
+SUPABASE_ANON_KEY
+  Required: optional
+  What: Supabase public (anon) key — safe for client-side use with RLS.
+  How to get: Supabase dashboard -> Project Settings -> API.
+  Example: SUPABASE_ANON_KEY=your-anon-key-here
+
+SUPABASE_SERVICE_ROLE_KEY
+  Required: optional
+  What: Supabase service-role key. Bypasses row-level security.
+  !! SERVER-ONLY. Never expose to the frontend or commit it. !!
+  How to get: Supabase dashboard -> Project Settings -> API.
+  Example: SUPABASE_SERVICE_ROLE_KEY=server-only-never-expose
+
+# ---------------- Automation / deployment (optional) ----------------
+
+GITHUB_TOKEN
+  Required: optional
+  What: GitHub token for wiki automation in CI, repo operations,
+        or GitHub Actions that push generated docs.
+  When: Only for CI automation; local `make wiki` needs no token.
+  How to get: GitHub -> Settings -> Developer settings -> Tokens.
+  Link: https://github.com/settings/tokens
+  Example: GITHUB_TOKEN=your-github-token-here
+
+VERCEL_TOKEN
+  Required: optional
+  What: Deploy token for the (future) Next.js frontend.
+  When: Frontend deployment only (Sprint 7+).
+  Link: https://vercel.com/account/tokens
+  Example: VERCEL_TOKEN=your-vercel-token-here
+
+VERCEL_ORG_ID / VERCEL_PROJECT_ID
+  Required: optional
+  What: Identify the Vercel org/project for CI deployments.
+  How to get: `vercel link` writes them to .vercel/project.json.
+  Example: VERCEL_ORG_ID=team_xxxx / VERCEL_PROJECT_ID=prj_xxxx
+
+RENDER_API_KEY
+  Required: optional
+  What: Backend deployment on Render.
+  Link: https://dashboard.render.com/account/api-keys
+  Example: RENDER_API_KEY=your-render-key-here
+
+RAILWAY_TOKEN
+  Required: optional
+  What: Backend deployment on Railway (alternative to Render).
+  Link: https://railway.com/account/tokens
+  Example: RAILWAY_TOKEN=your-railway-token-here
+
+# ---------------- ML / observability (optional) ----------------
+
+HF_TOKEN
+  Required: optional
+  What: Hugging Face token for gated models/datasets (e.g. pulling
+        open-weights models for local/vLLM inference).
+  Link: https://huggingface.co/settings/tokens
+  Example: HF_TOKEN=your-huggingface-token-here
+
+WANDB_API_KEY
+  Required: optional
+  What: Weights & Biases experiment tracking (e.g. evaluating agent
+        output quality across prompt/model versions).
+  Link: https://wandb.ai/authorize
+  Example: WANDB_API_KEY=your-wandb-key-here
+
+SENTRY_DSN
+  Required: optional
+  What: Sentry error tracking DSN for the backend API in production.
+  How to get: Sentry project settings -> Client Keys (DSN).
+  Link: https://sentry.io/
+  Example: SENTRY_DSN=https://examplePublicKey@o0.ingest.sentry.io/0
+
+# ---------------- Sourcing / CAD cloud (optional, future) ----------------
+
+NEXAR_CLIENT_ID / NEXAR_CLIENT_SECRET
+  Required: optional
+  What: Octopart/Nexar API credentials for real component sourcing and
+        live pricing in the BOM (replaces curated placeholder prices).
+  When: Only when ALLOW_EXTERNAL_PART_SEARCH=true and BOM enrichment
+        is implemented.
+  Link: https://nexar.com/api
+  Example: NEXAR_CLIENT_ID=your-client-id / NEXAR_CLIENT_SECRET=server-only
+
+ONSHAPE_ACCESS_KEY / ONSHAPE_SECRET_KEY
+  Required: optional
+  What: Onshape cloud CAD API keys — future integration for pushing
+        generated geometry into a full cloud CAD environment.
+  Link: https://dev-portal.onshape.com/
+  Example: ONSHAPE_ACCESS_KEY=your-access-key / ONSHAPE_SECRET_KEY=server-only
+
+# ============================================================
+# TL;DR: `make demo` needs nothing. Add keys only when you turn on
+# the feature that uses them. Keep secrets out of git, always.
+# ============================================================

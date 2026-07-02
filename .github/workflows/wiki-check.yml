@@ -1,0 +1,22 @@
+name: wiki-check
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  wiki-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install backend (no CAD kernel needed for wiki generation)
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -e "backend[dev]"
+      - name: Fail if generated wiki sections are stale
+        run: .venv/bin/python scripts/update_wiki.py --check
+      - name: Run tests
+        run: .venv/bin/python -m pytest backend/tests -q
