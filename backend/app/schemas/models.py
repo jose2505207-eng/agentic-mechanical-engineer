@@ -127,6 +127,22 @@ class CADParams(BaseModel):
     template: str = Field(default="mobile_robot_base_v1")
 
 
+class GeometryMetrics(BaseModel):
+    """Measured properties of generatively-built geometry (generic mode)."""
+
+    volume_mm3: float
+    bbox_mm: tuple[float, float, float]
+    is_valid_solid: bool
+    material: str = "PLA (assumed default)"
+    density_kg_m3: float = 1240.0
+    est_mass_kg: float
+    est_material_cost_usd: float
+    fits_envelope: bool
+    fits_print_bed: bool = Field(description="Fits a 256 mm cube consumer printer bed")
+    generation_attempts: int = 1
+    notes: list[str] = []
+
+
 # --------------------------------------------------------------------------
 # Simulation / engineering checks
 # --------------------------------------------------------------------------
@@ -253,9 +269,11 @@ class EngineeringReportState(BaseModel):
 
     design_id: str
     prompt: str
+    mode: str = Field(default="template", description="template | generative")
     requirements: Requirements | None = None
     architecture: ArchitectureSpec | None = None
     cad_params: CADParams | None = None
+    geometry: GeometryMetrics | None = None
     cad_export_note: str = ""
     simulation: SimulationResults | None = None
     risk_report: RiskReport | None = None

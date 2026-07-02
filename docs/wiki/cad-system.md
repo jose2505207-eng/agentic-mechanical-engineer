@@ -1,6 +1,20 @@
 # CAD System
 
-## How it works
+Two modes since ADR-009:
+
+1. **Template mode** — the proven wheeled-robot vertical (below).
+2. **Generative mode** — for arbitrary objects, the LLM writes a parametric
+   CadQuery script; `cad/sandbox.py` AST-validates it (import whitelist, no
+   dangerous builtins, no dunder access) and executes it in an isolated
+   subprocess with a timeout; `cad/generative.py` feeds failures back to the
+   model for up to 3 attempts. Output: `model.stl`, `model.step`, plus
+   `cad_script.py` — the editable parametric source. Fillet/chamfer/shell/
+   loft/sweep are banned in generated code (dominant OCCT failure mode).
+   Pipeline dispatch: `services/pipeline.py::select_mode` — robot-class
+   prompts go to template; everything else generative; generative failure
+   falls back to template; no LLM provider = always template.
+
+## How template mode works
 
 CAD generation is **template-based parametric modeling**, not AI freehand
 geometry. The flow:

@@ -75,8 +75,12 @@ def get_report(design_id: str) -> str:
 
 @router.get("/designs/{design_id}/model")
 def get_model(design_id: str) -> FileResponse:
-    _get_manifest_or_404(design_id)
-    path = _design_dir(design_id) / "robot_chassis.stl"
+    """Serve the design's STL, whatever the pipeline mode named it."""
+    manifest = _get_manifest_or_404(design_id)
+    stl = next((a for a in manifest.artifacts if a.kind == "stl"), None)
+    if stl is None:
+        raise HTTPException(status_code=404, detail="no STL artifact for this design")
+    path = _design_dir(design_id) / Path(stl.name).name
     if not path.exists():
-        raise HTTPException(status_code=404, detail="model not found")
-    return FileResponse(path, media_type="model/stl", filename="robot_chassis.stl")
+        raise HTTPException(status_code=404, detail="model file missing")
+    return FileResponse(path, media_type="model/stl", filename=path.name)

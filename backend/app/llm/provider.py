@@ -68,17 +68,40 @@ def complete_json(
     raise last_exc  # type: ignore[misc]
 
 
+def complete_text(system: str, user: str, timeout_s: float = 120.0, retries: int = 1) -> str:
+    """Free-text completion (used for code generation). Same provider
+    dispatch and retry semantics as complete_json, without JSON enforcement."""
+    last_exc: LLMUnavailable | None = None
+    for attempt in range(retries + 1):
+        try:
+            return _chat_once(system, user, timeout_s, json_mode=False)
+        except LLMUnavailable as exc:
+            last_exc = exc
+            if "no LLM configured" in str(exc) or "not set" in str(exc):
+                raise
+            logger.warning("LLM text attempt %d/%d failed: %s", attempt + 1, retries + 1, exc)
+    raise last_exc  # type: ignore[misc]
+
+
 def _complete_json_once(system: str, user: str, schema: type[T], timeout_s: float) -> T:
+    instruction = (
+        f"{user}\n\nRespond with ONLY a JSON object matching this JSON schema:\n"
+        f"{json.dumps(schema.model_json_schema())}"
+    )
+    text = _chat_once(system, instruction, timeout_s, json_mode=True)
+    try:
+        return schema.model_validate(_extract_json(text))
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise LLMUnavailable(f"model output failed schema validation: {exc}") from exc
+
+
+def _chat_once(system: str, user: str, timeout_s: float, json_mode: bool) -> str:
+    """One provider round-trip. All model I/O in the app funnels through here."""
     settings = get_settings()
     provider = settings.model_provider.lower()
 
     if provider == "deterministic":
         raise LLMUnavailable("MODEL_PROVIDER=deterministic — no LLM configured")
-
-    instruction = (
-        f"{user}\n\nRespond with ONLY a JSON object matching this JSON schema:\n"
-        f"{json.dumps(schema.model_json_schema())}"
-    )
 
     try:
         if provider == "anthropic":
@@ -92,44 +115,40 @@ def _complete_json_once(system: str, user: str, schema: type[T], timeout_s: floa
                 },
                 json={
                     "model": settings.model_name or "claude-fable-5",
-                    "max_tokens": 4096,
+                    "max_tokens": 8192,
                     "system": system,
-                    "messages": [{"role": "user", "content": instruction}],
+                    "messages": [{"role": "user", "content": user}],
                 },
                 timeout=timeout_s,
             )
             resp.raise_for_status()
-            text = resp.json()["content"][0]["text"]
-        elif provider in OPENAI_COMPAT_BASE_URLS:
+            return resp.json()["content"][0]["text"]
+
+        if provider in OPENAI_COMPAT_BASE_URLS:
             key = settings.openrouter_api_key if provider == "openrouter" \
                 else settings.openai_api_key
             if provider in ("openai", "openrouter") and not key:
                 raise LLMUnavailable(f"API key for provider '{provider}' not set")
+            body = {
+                "model": settings.model_name,
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+            }
+            if json_mode:
+                # Enforced JSON mode: without it, models occasionally emit
+                # glitch tokens mid-object (observed: '"payload_kg": II').
+                body["response_format"] = {"type": "json_object"}
             resp = httpx.post(
                 f"{OPENAI_COMPAT_BASE_URLS[provider]}/chat/completions",
                 headers={"Authorization": f"Bearer {key or 'none'}"},
-                json={
-                    "model": settings.model_name,
-                    "messages": [
-                        {"role": "system", "content": system},
-                        {"role": "user", "content": instruction},
-                    ],
-                    # Enforced JSON mode: without it, models occasionally emit
-                    # glitch tokens mid-object (observed: '"payload_kg": II').
-                    # Models that reject this parameter fail the request and
-                    # land in the normal retry->fallback path.
-                    "response_format": {"type": "json_object"},
-                },
+                json=body,
                 timeout=timeout_s,
             )
             resp.raise_for_status()
-            text = resp.json()["choices"][0]["message"]["content"]
-        else:
-            raise LLMUnavailable(f"unknown MODEL_PROVIDER '{provider}'")
+            return resp.json()["choices"][0]["message"]["content"]
+
+        raise LLMUnavailable(f"unknown MODEL_PROVIDER '{provider}'")
     except httpx.HTTPError as exc:
         raise LLMUnavailable(f"provider request failed: {exc}") from exc
-
-    try:
-        return schema.model_validate(_extract_json(text))
-    except (json.JSONDecodeError, ValueError) as exc:
-        raise LLMUnavailable(f"model output failed schema validation: {exc}") from exc

@@ -24,7 +24,16 @@
 - [ ] PDF report export
 - [ ] Background pipeline runs + status polling in the API
 
+- [x] Generative CAD mode: model-written CadQuery scripts, sandboxed
+      execution, error-feedback iteration, STL/STEP + editable source
+      (ADR-009; verified live: quadcopter frame from a drone prompt)
+
 ## V2 — Deeper engineering
+- [ ] Generative-mode simulation feedback loop: feed geometry/physics check
+      results back into the CAD script for optimization iterations (today
+      iteration is error-driven only)
+- [ ] Component-aware generative design: discoverable real components
+      (curated DB + Nexar) placed as mount envelopes in generated geometry
 - [ ] PyBullet: URDF from CAD mass properties, tip-over and clearance in
       actual physics instead of statics
 - [ ] More CAD templates: sensor arm, enclosure with ventilation, tracked

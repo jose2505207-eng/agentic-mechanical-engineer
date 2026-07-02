@@ -129,14 +129,34 @@ The full pipeline state — everything the report generator needs.
 |---|---|---|
 | `design_id` | `<class 'str'>` |  |
 | `prompt` | `<class 'str'>` |  |
+| `mode` | `<class 'str'>` | template | generative |
 | `requirements` | `app.schemas.models.Requirements | None` |  |
 | `architecture` | `app.schemas.models.ArchitectureSpec | None` |  |
 | `cad_params` | `app.schemas.models.CADParams | None` |  |
+| `geometry` | `app.schemas.models.GeometryMetrics | None` |  |
 | `cad_export_note` | `<class 'str'>` |  |
 | `simulation` | `app.schemas.models.SimulationResults | None` |  |
 | `risk_report` | `app.schemas.models.RiskReport | None` |  |
 | `bom` | `app.schemas.models.BOM | None` |  |
 | `manifest` | `app.schemas.models.ArtifactManifest | None` |  |
+
+### GeometryMetrics
+
+Measured properties of generatively-built geometry (generic mode).
+
+| Field | Type | Notes |
+|---|---|---|
+| `volume_mm3` | `<class 'float'>` |  |
+| `bbox_mm` | `tuple[float, float, float]` |  |
+| `is_valid_solid` | `<class 'bool'>` |  |
+| `material` | `<class 'str'>` |  |
+| `density_kg_m3` | `<class 'float'>` |  |
+| `est_mass_kg` | `<class 'float'>` |  |
+| `est_material_cost_usd` | `<class 'float'>` |  |
+| `fits_envelope` | `<class 'bool'>` |  |
+| `fits_print_bed` | `<class 'bool'>` | Fits a 256 mm cube consumer printer bed |
+| `generation_attempts` | `<class 'int'>` |  |
+| `notes` | `list[str]` |  |
 
 ### MotorSpec
 

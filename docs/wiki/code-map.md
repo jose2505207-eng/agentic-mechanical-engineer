@@ -43,6 +43,9 @@ What lives where, and why. Human notes go above/below the auto-generated block.
 | `backend/app/bom/sourcing.py` | External part sourcing enrichment (Nexar/Octopart), gated and honest. |
 | `backend/app/cad/__init__.py` | Parametric CAD generation (CadQuery templates + honest fallback). |
 | `backend/app/cad/chassis.py` | Mobile robot base template (mobile_robot_base_v1). |
+| `backend/app/cad/generative.py` | Generative CAD: the model writes a parametric CadQuery script; we |
+| `backend/app/cad/runner.py` | Subprocess entry point for sandboxed CAD script execution. |
+| `backend/app/cad/sandbox.py` | Sandboxed execution of model-generated CadQuery scripts. |
 | `backend/app/cad/stl_fallback.py` | Pure-Python binary STL writer for a rectangular box. |
 | `backend/app/config.py` | Runtime configuration loaded from environment variables. |
 | `backend/app/llm/__init__.py` | Model-provider abstraction for the AI agent layer. |
@@ -51,6 +54,7 @@ What lives where, and why. Human notes go above/below the auto-generated block.
 | `backend/app/llm/provider.py` | Provider-agnostic LLM client. |
 | `backend/app/main.py` | FastAPI application entrypoint. |
 | `backend/app/reports/__init__.py` | Engineering report generation (Markdown first; PDF later). |
+| `backend/app/reports/generic_markdown.py` | Report renderer for generative-mode designs (arbitrary objects). |
 | `backend/app/reports/markdown.py` | Markdown engineering report generator. |
 | `backend/app/schemas/__init__.py` | Public schema exports. Import from `app.schemas`, not `app.schemas.models`. |
 | `backend/app/schemas/models.py` | Core Pydantic schemas — the data contracts of the whole pipeline. |
@@ -65,9 +69,11 @@ What lives where, and why. Human notes go above/below the auto-generated block.
 | `backend/tests/conftest.py` | Shared fixtures. The pipeline runs once per session into a tmp dir; all |
 | `backend/tests/test_api.py` | API tests using FastAPI's TestClient against a temp storage dir. |
 | `backend/tests/test_architecture_gates.py` | Sprint 8: LLM architecture proposals must pass deterministic feasibility |
+| `backend/tests/test_generative_cad.py` | Generative CAD: sandbox safety, real execution, retry loop, pipeline mode. |
 | `backend/tests/test_golden_path.py` | Golden-path regression tests: the demo must produce every artifact, |
 | `backend/tests/test_llm_fallback.py` | AI agent layer tests with mocked model responses. |
 | `backend/tests/test_schemas.py` | Schema contract tests: validation works, bad values are rejected. |
+| `backend/tests/test_scope_and_budget.py` | Honesty rules for out-of-scope prompts and budget overruns. |
 | `backend/tests/test_sourcing_gate.py` | ALLOW_EXTERNAL_PART_SEARCH gate contract: |
 | `context/README.md` |  |
 | `context/hackathon-report/01-system-overview.md` |  |
@@ -126,8 +132,6 @@ What lives where, and why. Human notes go above/below the auto-generated block.
 | `frontend/.next/server/next-font-manifest.json` |  |
 | `frontend/.next/server/pages-manifest.json` |  |
 | `frontend/.next/server/server-reference-manifest.json` |  |
-| `frontend/.next/static/css/app/layout.css` |  |
-| `frontend/.next/static/webpack/633457081244afec._.hot-update.json` |  |
 | `frontend/.next/types/package.json` |  |
 | `frontend/README.md` |  |
 | `frontend/app/globals.css` |  |

@@ -26,7 +26,7 @@ export default function Home() {
     setDesignId(null);
     setArtifacts([]);
     setReportHtml("");
-    setLog([{ text: "Running pipeline… (about a minute when an LLM provider is configured)", cls: "run" }]);
+    setLog([{ text: "Running pipeline… (robot designs ~1 min; free-form objects use generative CAD and can take ~5 min while the AI iterates)", cls: "run" }]);
     try {
       const res = await fetch("/api/v1/designs", {
         method: "POST",
@@ -98,7 +98,7 @@ export default function Home() {
               <ul className="artifact-list">
                 {artifacts.map((a) => (
                   <li key={a.name}>
-                    {a.name === "robot_chassis.stl" ? (
+                    {a.kind === "stl" ? (
                       <a href={`/api/v1/designs/${designId}/model`}>{a.name}</a>
                     ) : (
                       <span>{a.name}</span>

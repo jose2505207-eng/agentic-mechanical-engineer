@@ -52,6 +52,25 @@ label themselves (even inside the STL header).
 **Why:** This tool's value is trustworthy engineering judgment. Fake
 precision would poison exactly that.
 
+## ADR-009: Generative CAD — the model writes code, a sandbox runs it
+**Decision:** Partially supersedes ADR-002. For arbitrary (non-robot-class)
+objects, the LLM writes a parametric CadQuery *script*; we AST-validate it
+(import whitelist, no dangerous builtins, no dunder access), execute it in
+an isolated subprocess (`python -I`, timeout, temp cwd), measure the result
+(volume, bbox, kernel validity), and feed failures back for up to 3
+attempts. Template mode remains the fallback and the only path when no LLM
+is configured. Fillet/chamfer/shell/loft/sweep are banned in generated code
+— observed to be the dominant OCCT failure mode.
+**Why:** "Anything as a 3D model" cannot come from a template library; code
+generation is the only mechanism where the model's output is fully
+inspectable, parametric (users can edit dimensions and re-run), and
+gate-able. ADR-002's spirit survives: the model still never emits raw
+geometry — it emits *reviewable source* that a validated toolchain turns
+into geometry.
+**Consequence:** We now execute model-written code. The sandbox treats model
+output as untrusted (see security-agent checklist); the threat model is a
+misbehaving model, not a hostile local user.
+
 ## ADR-008: Markdown reports before PDF, wiki before docs-site
 **Decision:** Ship Markdown everywhere first.
 **Why:** Diffable, testable, readable in the repo. PDF is a rendering
