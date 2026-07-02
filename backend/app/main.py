@@ -4,11 +4,17 @@ Run: make api    (uvicorn app.main:app --app-dir backend --reload)
 Docs: http://localhost:8000/docs
 """
 
+import logging
+
 from fastapi import FastAPI
 
 from app import __version__
 from app.api.routes import router
 from app.config import get_settings
+
+# Make pipeline decisions (LLM used / gated / fallback) visible in server
+# logs — silent failures are banned, and that includes silent fallbacks.
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 
 app = FastAPI(
     title="Agentic Mechanical Engineer",

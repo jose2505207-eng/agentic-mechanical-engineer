@@ -14,12 +14,15 @@ Design rules:
 from __future__ import annotations
 
 import json
+import logging
 from typing import TypeVar
 
 import httpx
 from pydantic import BaseModel
 
 from app.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -44,8 +47,28 @@ def _extract_json(text: str) -> dict:
     return json.loads(text[start:end + 1])
 
 
-def complete_json(system: str, user: str, schema: type[T], timeout_s: float = 60.0) -> T:
-    """Ask the configured model for a JSON object matching `schema`."""
+def complete_json(
+    system: str, user: str, schema: type[T], timeout_s: float = 60.0, retries: int = 1
+) -> T:
+    """Ask the configured model for a JSON object matching `schema`.
+
+    Retries once on transient failure (network error, malformed output) —
+    models occasionally fumble a JSON response; a second attempt is cheap
+    compared to losing the whole LLM stage to a hiccup.
+    """
+    last_exc: LLMUnavailable | None = None
+    for attempt in range(retries + 1):
+        try:
+            return _complete_json_once(system, user, schema, timeout_s)
+        except LLMUnavailable as exc:
+            last_exc = exc
+            if "no LLM configured" in str(exc) or "not set" in str(exc):
+                raise  # configuration problems don't improve on retry
+            logger.warning("LLM attempt %d/%d failed: %s", attempt + 1, retries + 1, exc)
+    raise last_exc  # type: ignore[misc]
+
+
+def _complete_json_once(system: str, user: str, schema: type[T], timeout_s: float) -> T:
     settings = get_settings()
     provider = settings.model_provider.lower()
 
@@ -91,6 +114,11 @@ def complete_json(system: str, user: str, schema: type[T], timeout_s: float = 60
                         {"role": "system", "content": system},
                         {"role": "user", "content": instruction},
                     ],
+                    # Enforced JSON mode: without it, models occasionally emit
+                    # glitch tokens mid-object (observed: '"payload_kg": II').
+                    # Models that reject this parameter fail the request and
+                    # land in the normal retry->fallback path.
+                    "response_format": {"type": "json_object"},
                 },
                 timeout=timeout_s,
             )

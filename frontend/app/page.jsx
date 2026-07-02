@@ -26,7 +26,7 @@ export default function Home() {
     setDesignId(null);
     setArtifacts([]);
     setReportHtml("");
-    setLog([{ text: "Submitting prompt to pipeline…", cls: "run" }]);
+    setLog([{ text: "Running pipeline… (about a minute when an LLM provider is configured)", cls: "run" }]);
     try {
       const res = await fetch("/api/v1/designs", {
         method: "POST",

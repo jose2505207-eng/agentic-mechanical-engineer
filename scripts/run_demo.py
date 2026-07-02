@@ -6,9 +6,12 @@ Usage:
     # or: .venv/bin/python scripts/run_demo.py ["custom prompt"]
 """
 
+import logging
 import sys
 import time
 from pathlib import Path
+
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "backend"))

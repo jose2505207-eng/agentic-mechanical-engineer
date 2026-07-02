@@ -10,9 +10,10 @@ import logging
 
 from app.agents.architecture import generate_architecture as det_generate_architecture
 from app.agents.requirements import extract_requirements as det_extract_requirements
+from app.config import get_settings
 from app.llm.gates import check_feasibility
 from app.llm.provider import LLMUnavailable, complete_json
-from app.schemas import ArchitectureSpec, Requirements
+from app.schemas import ArchitectureSpec, EngineeringAssumption, Requirements
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,14 @@ def extract_requirements(prompt: str) -> Requirements:
         )
         # The model must echo the prompt faithfully; enforce it.
         req.prompt = prompt
+        settings = get_settings()
+        req.assumptions.append(EngineeringAssumption(
+            field="provenance",
+            assumed_value=f"Requirements extracted by LLM "
+                          f"({settings.model_provider}:{settings.model_name})",
+            rationale="Model output validated against the Requirements schema; "
+                      "deterministic extractor remains the fallback.",
+            confidence="high"))
         logger.info("requirements extracted via LLM provider")
         return req
     except LLMUnavailable as exc:
