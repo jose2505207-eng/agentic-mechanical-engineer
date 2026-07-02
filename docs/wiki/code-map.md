@@ -40,12 +40,14 @@ What lives where, and why. Human notes go above/below the auto-generated block.
 | `backend/app/api/routes.py` | Design API. |
 | `backend/app/bom/__init__.py` | Bill of materials generation from curated component data. |
 | `backend/app/bom/generator.py` | BOM generation. |
+| `backend/app/bom/sourcing.py` | External part sourcing enrichment (Nexar/Octopart), gated and honest. |
 | `backend/app/cad/__init__.py` | Parametric CAD generation (CadQuery templates + honest fallback). |
 | `backend/app/cad/chassis.py` | Mobile robot base template (mobile_robot_base_v1). |
 | `backend/app/cad/stl_fallback.py` | Pure-Python binary STL writer for a rectangular box. |
 | `backend/app/config.py` | Runtime configuration loaded from environment variables. |
 | `backend/app/llm/__init__.py` | Model-provider abstraction for the AI agent layer. |
 | `backend/app/llm/agents.py` | LLM-backed pipeline agents with deterministic fallback. |
+| `backend/app/llm/gates.py` | Feasibility gates for LLM-proposed architectures. |
 | `backend/app/llm/provider.py` | Provider-agnostic LLM client. |
 | `backend/app/main.py` | FastAPI application entrypoint. |
 | `backend/app/reports/__init__.py` | Engineering report generation (Markdown first; PDF later). |
@@ -62,9 +64,11 @@ What lives where, and why. Human notes go above/below the auto-generated block.
 | `backend/pyproject.toml` |  |
 | `backend/tests/conftest.py` | Shared fixtures. The pipeline runs once per session into a tmp dir; all |
 | `backend/tests/test_api.py` | API tests using FastAPI's TestClient against a temp storage dir. |
+| `backend/tests/test_architecture_gates.py` | Sprint 8: LLM architecture proposals must pass deterministic feasibility |
 | `backend/tests/test_golden_path.py` | Golden-path regression tests: the demo must produce every artifact, |
 | `backend/tests/test_llm_fallback.py` | AI agent layer tests with mocked model responses. |
 | `backend/tests/test_schemas.py` | Schema contract tests: validation works, bad values are rejected. |
+| `backend/tests/test_sourcing_gate.py` | ALLOW_EXTERNAL_PART_SEARCH gate contract: |
 | `context/README.md` |  |
 | `context/hackathon-report/01-system-overview.md` |  |
 | `context/hackathon-report/02-agent-pipeline.md` |  |
@@ -107,7 +111,31 @@ What lives where, and why. Human notes go above/below the auto-generated block.
 | `docs/wiki/simulation-system.md` |  |
 | `docs/wiki/troubleshooting.md` |  |
 | `env-space` |  |
+| `examples/architecture.json` |  |
+| `examples/cad_params.json` |  |
+| `examples/requirements.json` |  |
+| `frontend/.next/app-build-manifest.json` |  |
+| `frontend/.next/build-manifest.json` |  |
+| `frontend/.next/cache/next-devtools-config.json` |  |
+| `frontend/.next/package.json` |  |
+| `frontend/.next/prerender-manifest.json` |  |
+| `frontend/.next/react-loadable-manifest.json` |  |
+| `frontend/.next/routes-manifest.json` |  |
+| `frontend/.next/server/app-paths-manifest.json` |  |
+| `frontend/.next/server/middleware-manifest.json` |  |
+| `frontend/.next/server/next-font-manifest.json` |  |
+| `frontend/.next/server/pages-manifest.json` |  |
+| `frontend/.next/server/server-reference-manifest.json` |  |
+| `frontend/.next/static/css/app/layout.css` |  |
+| `frontend/.next/static/webpack/633457081244afec._.hot-update.json` |  |
+| `frontend/.next/types/package.json` |  |
 | `frontend/README.md` |  |
+| `frontend/app/globals.css` |  |
+| `frontend/app/layout.jsx` |  |
+| `frontend/app/page.jsx` |  |
+| `frontend/components/StlViewer.jsx` |  |
+| `frontend/next.config.mjs` |  |
+| `frontend/package.json` |  |
 | `scripts/check_env.py` | Environment sanity check: reports which env vars are set (never their |
 | `scripts/repo_map.py` | Print a map of the repository: tree of tracked-worthy files with the first |
 | `scripts/run_demo.py` | Golden path demo: canned prompt -> full engineering package in outputs/. |

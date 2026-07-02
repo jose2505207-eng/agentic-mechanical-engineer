@@ -25,9 +25,11 @@ def iter_files(root: Path):
     for p in sorted(root.rglob("*")):
         if any(part in SKIP_DIRS or part.endswith(".egg-info") for part in p.parts):
             continue
-        if p.is_file() and p.suffix in {".py", ".toml", ".md", ".yml", ".yaml"} or p.name in (
-            "Makefile", "env-space", ".env.example"
-        ):
+        if p.name == "package-lock.json":
+            continue
+        if p.is_file() and p.suffix in {
+            ".py", ".toml", ".md", ".yml", ".yaml", ".jsx", ".mjs", ".json", ".css"
+        } or p.name in ("Makefile", "env-space", ".env.example"):
             yield p
 
 

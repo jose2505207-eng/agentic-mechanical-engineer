@@ -28,11 +28,22 @@ checks, a risk report, a costed BOM, and a written engineering report.
 ```bash
 make install    # venv + deps (CadQuery is a big download)
 make demo       # the line above, for real, in under a second
-make test       # 21 tests validating the golden path
+make test       # 29 tests validating the golden path
 make api        # FastAPI at http://localhost:8000/docs
 ```
 
-No API keys, no database, no GPU required. The MVP is fully offline.
+No API keys, no database, no GPU required. The core pipeline is fully offline.
+
+### Web UI
+
+```bash
+make install-frontend   # once (Node 18+)
+make api                # terminal 1 — backend on :8000
+make frontend           # terminal 2 — UI on http://localhost:3000
+```
+
+Prompt box → Run design → live status, artifact list, rendered engineering
+report, and an orbitable 3D view of the generated chassis.
 
 ## Architecture
 

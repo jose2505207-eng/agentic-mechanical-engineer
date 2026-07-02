@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openrouter_api_key: str = ""
 
+    # External part sourcing (used only when allow_external_part_search=True)
+    nexar_client_id: str = ""
+    nexar_client_secret: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:

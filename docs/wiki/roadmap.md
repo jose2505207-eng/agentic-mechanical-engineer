@@ -10,13 +10,17 @@
 - [x] Wiki + auto-update system, 21-test suite, CI workflow
 
 ## V1 — Make the AI layer real
-- [ ] LLM-backed architecture proposals gated by feasibility rules
+- [x] LLM-backed architecture proposals gated by feasibility rules
+      (`llm/gates.py`; wired into the pipeline with deterministic fallback)
+- [x] Next.js frontend: prompt box, artifact list, Markdown report viewer,
+      React-Three-Fiber STL viewer, status panel (`make frontend`)
+- [x] External part-search gate implemented end to end
+      (`bom/sourcing.py`; Nexar enrichment when credentialed, honest
+      curated fallback otherwise)
 - [ ] LangGraph orchestration replacing sequential `run_pipeline`
       (same state object, same tests)
 - [ ] Multi-prompt robustness: 10 canned prompts across payload/runtime/
       environment variations, all passing checks or failing honestly
-- [ ] Next.js frontend: prompt box, artifact list, Markdown report viewer,
-      React-Three-Fiber STL viewer (Sprint 7 spec in repo prompt)
 - [ ] PDF report export
 - [ ] Background pipeline runs + status polling in the API
 
@@ -27,7 +31,8 @@
       base; template registry keyed by `CADParams.template`
 - [ ] Material selection agent (PLA/PETG/CF-Nylon/Al6061) driving density &
       yield in checks
-- [ ] Nexar/Octopart live BOM enrichment behind `ALLOW_EXTERNAL_PART_SEARCH`
+- [ ] Nexar/Octopart enrichment hardening: response caching, alternatives
+      per line item (gate + client shipped in V1)
 - [ ] Postgres/Supabase design history; auth
 - [ ] Design iteration loop: failed check → parameter adjustment → re-run
 

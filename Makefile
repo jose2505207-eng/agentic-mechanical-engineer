@@ -1,4 +1,4 @@
-.PHONY: install demo test api wiki clean-outputs check-env lint
+.PHONY: install demo test api wiki clean-outputs check-env lint install-frontend frontend
 
 VENV := .venv
 PY := $(VENV)/bin/python
@@ -35,3 +35,9 @@ check-env:
 
 lint:
 	$(VENV)/bin/ruff check backend scripts
+
+install-frontend:
+	cd frontend && npm install --no-audit --no-fund
+
+frontend:
+	cd frontend && npm run dev

@@ -15,13 +15,13 @@ self-describing.
 
 | Agent | Input → Output | Today | Upgrade path |
 |---|---|---|---|
-| Requirements | `str` → `Requirements` | regex + documented defaults (`agents/requirements.py`) | `llm/agents.py::extract_requirements` — LLM w/ schema validation, falls back to deterministic |
-| Architecture | `Requirements` → `ArchitectureSpec` | power-budget sizing rules (`agents/architecture.py`) | LLM proposes, rules layer gates feasibility |
+| Requirements | `str` → `Requirements` | **LLM-wired:** `llm/agents.py::extract_requirements` — schema-validated, deterministic fallback (`agents/requirements.py`) | richer prompts, multi-turn clarification |
+| Architecture | `Requirements` → `ArchitectureSpec` | **LLM-wired:** `llm/agents.py::propose_architecture` — proposal must pass `llm/gates.py` physics feasibility gates or falls back to `agents/architecture.py` | wider template/material space |
 | CAD params | `Requirements, ArchitectureSpec` → `CADParams` | direct mapping (`agents/cad_params.py`) | LLM selects template + parameters within schema bounds |
 | CAD | `CADParams` → STL/STEP + volume | CadQuery template — **stays engineer-authored forever** | more templates, not freehand AI geometry |
 | Checks | `SimulationInput` → `SimulationResults` | analytical formulas — **stays deterministic** | add PyBullet, then FEA; formulas remain as sanity anchor |
 | Risk | reqs+arch+sim → `RiskReport` | threshold rules | LLM adds narrative; rules keep severity authority |
-| BOM | arch+cad → `BOM` | curated table | Nexar/Octopart live pricing behind `ALLOW_EXTERNAL_PART_SEARCH` |
+| BOM | arch+cad → `BOM` | curated table + gated Nexar enrichment (`bom/sourcing.py`, needs `ALLOW_EXTERNAL_PART_SEARCH=true` **and** NEXAR credentials; anything less keeps curated prices and says so in the disclaimer) | supplier alternatives, stock checks |
 | Report | full state → Markdown | template renderer | LLM prose sections around machine-generated tables |
 
 ## The replacement rule
