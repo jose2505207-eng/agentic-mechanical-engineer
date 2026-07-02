@@ -14,11 +14,32 @@ from app.schemas import EngineeringAssumption, EnvironmentType, LocomotionType, 
 
 _RUNTIME_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(?:hours|hour|hrs|hr|h)\b", re.IGNORECASE)
 _PAYLOAD_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(?:kg|kilograms?)\b", re.IGNORECASE)
+_BUDGET_RE = re.compile(r"\$?\s*(\d{2,6})\s*(?:\$|usd|dollars?|budget)|budget\D{0,10}(\d{2,6})",
+                        re.IGNORECASE)
+
+# Platforms this MVP cannot design (single robot class: 4-wheel ground robot).
+# A match must be surfaced loudly, never silently reinterpreted.
+OUT_OF_SCOPE_RE = re.compile(
+    r"\b(drone|quad ?copter|uav|fly(?:ing)?|aerial|aircraft|boat|marine|underwater|"
+    r"submarine|humanoid|robotic arm|manipulator)\b", re.IGNORECASE)
 
 
 def extract_requirements(prompt: str) -> Requirements:
     assumptions: list[EngineeringAssumption] = []
     unknowns: list[str] = []
+
+    scope = OUT_OF_SCOPE_RE.search(prompt)
+    if scope:
+        term = scope.group(1)
+        assumptions.append(EngineeringAssumption(
+            field="platform_scope", assumed_value="4-wheel ground mobile robot",
+            rationale=f"Prompt requests '{term}', which is OUTSIDE this system's current "
+                      "scope (one robot class: wheeled ground robot). The request was "
+                      f"reinterpreted as a ground robot; this package is NOT a {term} design.",
+            confidence="high"))
+        unknowns.append(
+            f"Customer asked for a '{term}' — confirm whether a ground-robot "
+            "reinterpretation is acceptable or the request should be declined.")
 
     m = _RUNTIME_RE.search(prompt)
     if m:
@@ -65,10 +86,15 @@ def extract_requirements(prompt: str) -> Requirements:
                       "and lidar for navigation.",
             confidence="medium"))
 
-    assumptions.append(EngineeringAssumption(
-        field="max_cost_usd", assumed_value="1500 USD",
-        rationale="No budget stated; prototype-class budget assumed.",
-        confidence="low"))
+    m = _BUDGET_RE.search(prompt)
+    if m:
+        max_cost = float(m.group(1) or m.group(2))
+    else:
+        max_cost = 1500.0
+        assumptions.append(EngineeringAssumption(
+            field="max_cost_usd", assumed_value="1500 USD",
+            rationale="No budget stated; prototype-class budget assumed.",
+            confidence="low"))
     assumptions.append(EngineeringAssumption(
         field="max_dimensions_mm", assumed_value="600 x 450 x 900 mm",
         rationale="Must pass standard doorways and navigate factory aisles.",
@@ -83,7 +109,7 @@ def extract_requirements(prompt: str) -> Requirements:
         runtime_hr=runtime_hr,
         max_dimensions_mm=(600.0, 450.0, 900.0),
         environment=environment,
-        max_cost_usd=1500.0,
+        max_cost_usd=max_cost,
         locomotion_type=LocomotionType.wheeled_4,
         sensors_required=sensors,
         max_speed_m_s=1.0,

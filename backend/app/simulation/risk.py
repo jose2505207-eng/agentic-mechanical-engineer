@@ -5,7 +5,9 @@ Severity reflects engineering judgment encoded as thresholds — no LLM
 guessing. Every design also carries the standing 'analysis fidelity' risks.
 """
 
+from app.agents.requirements import OUT_OF_SCOPE_RE
 from app.schemas import (
+    BOM,
     ArchitectureSpec,
     Requirements,
     RiskItem,
@@ -20,18 +22,41 @@ def generate_risk_report(
     req: Requirements,
     arch: ArchitectureSpec,
     sim: SimulationResults,
+    bom: BOM | None = None,
 ) -> RiskReport:
     items: list[RiskItem] = []
 
     def add(rid: str, title: str, sev: RiskSeverity, desc: str, mit: str) -> None:
         items.append(RiskItem(id=rid, title=title, severity=sev, description=desc, mitigation=mit))
 
-    # Standing fidelity risk — always present, always first
+    # Scope risk — the single most important honesty item; checked on the raw
+    # prompt so it fires regardless of which extractor (LLM or rules) ran.
+    scope = OUT_OF_SCOPE_RE.search(req.prompt)
+    if scope:
+        term = scope.group(1)
+        add("R-001", f"Requested platform ('{term}') is outside system scope",
+            RiskSeverity.critical,
+            f"The prompt asks for a {term}, but this system currently designs ONE "
+            "robot class: a 4-wheel ground mobile robot. Everything in this package "
+            f"is a ground-robot reinterpretation and does not represent a {term} design.",
+            "Do not use this package for the requested platform. Confirm with the "
+            "customer whether a ground robot is acceptable; aerial/other platforms "
+            "are on the roadmap, not in the product.")
+
+    # Standing fidelity risk — always present
     add("R-000", "Analysis fidelity limits", RiskSeverity.high,
         "All structural and stability numbers are first-order analytical estimates. "
         "No FEA, no dynamic simulation, no physical testing has been performed.",
         "Treat this package as a concept design. Perform FEA and prototype testing "
         "before fabrication or deployment.")
+
+    if bom is not None and bom.total_cost_usd > req.max_cost_usd:
+        add("R-103", "Estimated cost exceeds budget", RiskSeverity.high,
+            f"BOM total ${bom.total_cost_usd:.0f} exceeds the stated budget "
+            f"${req.max_cost_usd:.0f} by "
+            f"{(bom.total_cost_usd / req.max_cost_usd - 1) * 100:.0f}%.",
+            "Reduce the sensor suite, choose lower-cost component classes, or "
+            "revisit the budget with the customer before proceeding.")
 
     for check in sim.checks:
         if not check.passed:

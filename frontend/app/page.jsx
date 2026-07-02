@@ -44,7 +44,8 @@ export default function Home() {
       const rep = await fetch(`/api/v1/designs/${data.design_id}/report`);
       setReportHtml(marked.parse(await rep.text()));
       pushLog("Engineering report loaded", "ok");
-      (data.manifest.notes || []).forEach((n) => pushLog(n, "ok"));
+      (data.manifest.notes || []).forEach((n) =>
+        pushLog(n, /FAILED|CRITICAL|HIGH:/.test(n) ? "err" : "ok"));
     } catch (err) {
       pushLog(`Failed: ${err.message}. Is the backend running? (make api)`, "err");
     } finally {

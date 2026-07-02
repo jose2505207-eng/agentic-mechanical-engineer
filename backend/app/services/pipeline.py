@@ -67,24 +67,39 @@ def run_pipeline(prompt: str, output_dir: Path, design_id: str | None = None
     store.write_json("simulation_results.json", state.simulation,
                      "Deterministic engineering checks (not FEA)")
 
-    # 6. Risk report
-    state.risk_report = generate_risk_report(
-        design_id, state.requirements, state.architecture, state.simulation)
-    store.write_json("risk_report.json", state.risk_report, "Rule-based risk assessment")
-
-    # 7. BOM (curated; enriched via external sourcing only if gate is enabled)
+    # 6. BOM (curated; enriched via external sourcing only if gate is enabled).
+    #    Generated before the risk report so budget compliance can be checked.
     state.bom = generate_bom(design_id, state.requirements, state.architecture, state.cad_params)
     state.bom = enrich_bom(state.bom)
     store.write_json("bom.json", state.bom, "Bill of materials (JSON form)")
     write_bom_csv(state.bom, store.path("bom.csv"))
     store.track_file("bom.csv", "csv", "Bill of materials with cost estimates")
 
+    # 7. Risk report (sees requirements, architecture, simulation, and BOM)
+    state.risk_report = generate_risk_report(
+        design_id, state.requirements, state.architecture, state.simulation, state.bom)
+    store.write_json("risk_report.json", state.risk_report, "Rule-based risk assessment")
+
     # 8. Report
     store.write_text("engineering_report.md", render_report(state), "md",
                      "Human-readable engineering report")
 
-    # 9. Manifest
-    notes = ["Deterministic MVP pipeline; AI agent layer can replace stages 1-3."]
+    # 9. Manifest — notes report what ACTUALLY happened on this run
+    req_llm = any(a.field == "provenance" for a in state.requirements.assumptions)
+    arch_llm = any("feasibility gates" in r for r in state.architecture.rationale)
+    notes = [
+        "Requirements: " + ("LLM-extracted, schema-validated" if req_llm
+                            else "deterministic extractor") +
+        " | Architecture: " + ("LLM-proposed, passed feasibility gates" if arch_llm
+                               else "deterministic generator"),
+    ]
+    failed = [c.name for c in state.simulation.checks if not c.passed]
+    if failed:
+        notes.append(f"{len(failed)} of {len(state.simulation.checks)} engineering "
+                     f"checks FAILED: {', '.join(failed)} — see risk report.")
+    for item in state.risk_report.items:
+        if item.severity.value in ("critical", "high") and item.id != "R-000":
+            notes.append(f"{item.severity.value.upper()}: {item.title}")
     if not cad_result.used_cadquery:
         notes.append("CAD placeholder mode was used: " + cad_result.note)
     state.manifest = store.write_manifest(design_id, prompt, notes)
