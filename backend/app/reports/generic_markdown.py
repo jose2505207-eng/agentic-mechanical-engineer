@@ -47,6 +47,17 @@ def render_generic_report(state: EngineeringReportState) -> str:
     for n in geo.notes:
         md.append(f"- {n}\n")
 
+    if state.geometry_checks is not None:
+        gc = state.geometry_checks
+        md.append("\n## Engineering Checks & Optimization\n")
+        md.append(f"**{gc.optimization_note}**\n\n")
+        md.append("| Check | Value | Allowed | Result | Formula |\n|---|---|---|---|---|\n")
+        for c in gc.checks:
+            md.append(f"| {c.name} | {c.value} {c.unit} | {c.threshold} | "
+                      f"{'PASS' if c.passed else '**FAIL**'} | `{c.formula}` |\n")
+        md.append("\n### Iteration history\n")
+        md.extend(f"- {line}\n" for line in gc.iterations)
+
     md.append("\n## Requirements & Assumptions\n")
     md.append(f"- Payload: {req.payload_kg} kg | runtime: {req.runtime_hr} h | "
               f"budget: ${req.max_cost_usd:.0f} | environment: {req.environment.value}\n")

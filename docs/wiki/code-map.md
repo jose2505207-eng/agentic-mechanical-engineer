@@ -43,7 +43,7 @@ What lives where, and why. Human notes go above/below the auto-generated block.
 | `backend/app/bom/sourcing.py` | External part sourcing enrichment (Nexar/Octopart), gated and honest. |
 | `backend/app/cad/__init__.py` | Parametric CAD generation (CadQuery templates + honest fallback). |
 | `backend/app/cad/chassis.py` | Mobile robot base template (mobile_robot_base_v1). |
-| `backend/app/cad/generative.py` | Generative CAD: the model writes a parametric CadQuery script; we |
+| `backend/app/cad/generative.py` | Generative CAD with sim-feedback optimization. |
 | `backend/app/cad/runner.py` | Subprocess entry point for sandboxed CAD script execution. |
 | `backend/app/cad/sandbox.py` | Sandboxed execution of model-generated CadQuery scripts. |
 | `backend/app/cad/stl_fallback.py` | Pure-Python binary STL writer for a rectangular box. |
@@ -62,6 +62,7 @@ What lives where, and why. Human notes go above/below the auto-generated block.
 | `backend/app/services/pipeline.py` | The golden path: prompt -> full engineering artifact package. |
 | `backend/app/simulation/__init__.py` | Deterministic engineering checks. Not FEA. Not certified analysis. |
 | `backend/app/simulation/checks.py` | Deterministic engineering check suite. |
+| `backend/app/simulation/geometry_checks.py` | Deterministic checks for generatively-built geometry. |
 | `backend/app/simulation/risk.py` | Rule-based risk report generation. |
 | `backend/app/storage/__init__.py` | Artifact storage (local filesystem MVP). |
 | `backend/app/storage/artifacts.py` | Local filesystem artifact store. |
@@ -72,6 +73,7 @@ What lives where, and why. Human notes go above/below the auto-generated block.
 | `backend/tests/test_generative_cad.py` | Generative CAD: sandbox safety, real execution, retry loop, pipeline mode. |
 | `backend/tests/test_golden_path.py` | Golden-path regression tests: the demo must produce every artifact, |
 | `backend/tests/test_llm_fallback.py` | AI agent layer tests with mocked model responses. |
+| `backend/tests/test_optimization_loop.py` | Sim-feedback optimization loop: checks drive redesign iterations. |
 | `backend/tests/test_schemas.py` | Schema contract tests: validation works, bad values are rejected. |
 | `backend/tests/test_scope_and_budget.py` | Honesty rules for out-of-scope prompts and budget overruns. |
 | `backend/tests/test_sourcing_gate.py` | ALLOW_EXTERNAL_PART_SEARCH gate contract: |

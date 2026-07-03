@@ -1,5 +1,18 @@
 # Simulation System
 
+Two check suites:
+
+- **Robot checks** (template mode, below) — the six physics checks.
+- **Geometry checks** (generative mode, `simulation/geometry_checks.py`) —
+  kernel validity, envelope fit (worst-axis ratio ≤ 1.02), and material
+  cost vs budget (solid PLA upper bound). These are the checks the
+  **sim-feedback optimization loop** iterates against: after each build,
+  failures are rendered into redesign instructions (`render_check_feedback`)
+  and fed back to the model, up to CAD_MAX_ITERATIONS. Print-bed fit is
+  informational only — a 2 kg-payload drone can't fit a 256 mm bed and
+  forcing it would fight physics. Results + full iteration history land in
+  `simulation_results.json` (`GeometryCheckReport`).
+
 **Read this first:** nothing here is FEA. These are the first-order sizing
 calculations an engineer does before opening an FEA tool — implemented in
 `backend/app/simulation/checks.py`, with every formula and assumption echoed

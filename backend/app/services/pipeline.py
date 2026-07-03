@@ -31,6 +31,7 @@ from app.reports.generic_markdown import render_generic_report
 from app.reports.markdown import render_report
 from app.schemas import (
     EngineeringReportState,
+    GeometryCheckReport,
     GeometryMetrics,
     RiskItem,
     RiskReport,
@@ -38,6 +39,8 @@ from app.schemas import (
     SimulationInput,
 )
 from app.simulation.checks import run_checks
+from app.simulation.geometry_checks import LIMITATIONS as GEOMETRY_CHECK_LIMITATIONS
+from app.simulation.geometry_checks import run_geometry_checks
 from app.simulation.risk import generate_risk_report
 from app.storage.artifacts import ArtifactStore
 
@@ -90,10 +93,14 @@ def _run_generative(prompt: str, output_dir: Path, design_id: str
     store.write_json("requirements.json", state.requirements,
                      "Structured requirements with explicit assumptions")
 
-    # 2. Generative CAD: model writes code -> sandbox -> validate -> retry
+    # 2. Generative CAD with sim-feedback: model writes code -> sandbox ->
+    #    engineering checks -> failures fed back for redesign (bounded loop)
+    req = state.requirements
     gen = generate_model(
-        prompt, state.requirements.max_dimensions_mm,
-        stl_path=store.path("model.stl"), step_path=store.path("model.step"))
+        prompt, req.max_dimensions_mm,
+        stl_path=store.path("model.stl"), step_path=store.path("model.step"),
+        check_fn=lambda m: run_geometry_checks(
+            req, m.volume_mm3, m.bbox_mm, m.is_valid_solid))
     state.cad_export_note = gen.note
     store.write_text("cad_script.py", gen.script, "py",
                      "Model-written parametric CadQuery source (editable)")
@@ -120,7 +127,17 @@ def _run_generative(prompt: str, output_dir: Path, design_id: str
     store.write_json("geometry_metrics.json", state.geometry,
                      "Measured geometry properties (volume, bbox, printability)")
 
-    # 4. Risks — geometry-level honesty
+    # 4. Check report — what the optimization loop iterated against
+    state.geometry_checks = GeometryCheckReport(
+        design_id=design_id, checks=gen.checks,
+        all_passed=gen.all_checks_passed,
+        iterations=gen.iterations,
+        optimization_note=gen.note,
+        limitations=list(GEOMETRY_CHECK_LIMITATIONS))
+    store.write_json("simulation_results.json", state.geometry_checks,
+                     "Engineering checks + optimization iteration history")
+
+    # 5. Risks — geometry-level honesty; failed checks become HIGH items
     items = [RiskItem(
         id="R-000", title="Analysis fidelity limits", severity=RiskSeverity.high,
         description="Geometry is AI-generated and validated for geometric soundness "
@@ -128,18 +145,16 @@ def _run_generative(prompt: str, output_dir: Path, design_id: str
                     "was performed.",
         mitigation="Engineer review + slicer checks before printing; FEA before "
                    "any load-bearing use.")]
-    if not state.geometry.is_valid_solid:
-        items.append(RiskItem(
-            id="R-401", title="Solid failed OCCT validity check",
-            severity=RiskSeverity.high,
-            description="The CAD kernel reports the solid as not fully valid; "
-                        "boolean artifacts or self-intersections are likely.",
-            mitigation="Repair in CAD before use; re-run generation."))
-    if not state.geometry.fits_envelope:
-        items.append(RiskItem(
-            id="R-402", title="Exceeds requested envelope", severity=RiskSeverity.high,
-            description=f"Bounding box {bbox} mm exceeds the requested envelope {env} mm.",
-            mitigation="Scale down or re-run with a tighter size instruction."))
+    for c in gen.checks:
+        if not c.passed:
+            items.append(RiskItem(
+                id=f"R-CHK-{c.name}", title=f"Failed check: {c.name}",
+                severity=RiskSeverity.high,
+                description=f"{c.name} = {c.value} {c.unit}, allowed {c.threshold}. "
+                            f"Formula: {c.formula}. The optimization loop could not "
+                            f"converge within its iteration budget.",
+                mitigation="Re-run with a larger CAD_MAX_ITERATIONS, relax the "
+                           "constraint, or edit cad_script.py dimensions by hand."))
     if not state.geometry.fits_print_bed:
         items.append(RiskItem(
             id="R-403", title="Too large for a consumer print bed",
@@ -148,17 +163,20 @@ def _run_generative(prompt: str, output_dir: Path, design_id: str
             mitigation="Split into parts with joints, or print on a large-format machine."))
     state.risk_report = RiskReport(
         design_id=design_id, items=items,
-        overall_assessment=("Geometry built and validated"
-                            + ("" if state.geometry.is_valid_solid else " WITH KERNEL WARNINGS")
-                            + f" in {gen.attempts} attempt(s). Concept-level only."),
-        generated_by="generative-rules-v1")
+        overall_assessment=(
+            f"Converged: all checks passed in {gen.attempts} iteration(s). "
+            if gen.all_checks_passed else
+            f"DID NOT CONVERGE in {gen.attempts} iteration(s); see failed checks. ")
+        + "Concept-level only.",
+        generated_by="generative-rules-v2")
     store.write_json("risk_report.json", state.risk_report, "Rule-based risk assessment")
 
-    # 5. Report + manifest
+    # 6. Report + manifest
     store.write_text("engineering_report.md", render_generic_report(state), "md",
                      "Human-readable engineering report")
-    notes = ["Mode: GENERATIVE — model-written parametric CAD, sandbox-executed "
-             f"({gen.attempts} attempt(s)), geometry validated."]
+    notes = ["Mode: GENERATIVE — model-written parametric CAD with sim-feedback "
+             f"optimization ({gen.attempts} iteration(s), "
+             + ("converged" if gen.all_checks_passed else "NOT converged") + ")."]
     for item in state.risk_report.items:
         if item.severity.value in ("critical", "high") and item.id != "R-000":
             notes.append(f"{item.severity.value.upper()}: {item.title}")

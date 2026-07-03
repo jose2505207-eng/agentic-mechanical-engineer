@@ -166,6 +166,18 @@ class CheckResult(BaseModel):
     assumptions: list[str] = []
 
 
+class GeometryCheckReport(BaseModel):
+    """Check results + iteration history for a generative-mode design."""
+
+    design_id: str
+    checks: list[CheckResult]
+    all_passed: bool
+    iterations: list[str] = Field(
+        description="Human-readable log of each optimization iteration")
+    optimization_note: str
+    limitations: list[str]
+
+
 class SimulationResults(BaseModel):
     """Results of deterministic engineering checks. NOT FEA. NOT certified."""
 
@@ -274,6 +286,7 @@ class EngineeringReportState(BaseModel):
     architecture: ArchitectureSpec | None = None
     cad_params: CADParams | None = None
     geometry: GeometryMetrics | None = None
+    geometry_checks: GeometryCheckReport | None = None
     cad_export_note: str = ""
     simulation: SimulationResults | None = None
     risk_report: RiskReport | None = None

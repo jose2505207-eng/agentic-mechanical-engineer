@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     model_name: str = ""
     storage_dir: Path = Path("./outputs")
     max_cad_complexity: int = 100_000
+    cad_max_iterations: int = 5
     allow_external_part_search: bool = False
 
     # LLM providers (AI agent layer only)

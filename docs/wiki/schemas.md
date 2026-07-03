@@ -134,11 +134,25 @@ The full pipeline state — everything the report generator needs.
 | `architecture` | `app.schemas.models.ArchitectureSpec | None` |  |
 | `cad_params` | `app.schemas.models.CADParams | None` |  |
 | `geometry` | `app.schemas.models.GeometryMetrics | None` |  |
+| `geometry_checks` | `app.schemas.models.GeometryCheckReport | None` |  |
 | `cad_export_note` | `<class 'str'>` |  |
 | `simulation` | `app.schemas.models.SimulationResults | None` |  |
 | `risk_report` | `app.schemas.models.RiskReport | None` |  |
 | `bom` | `app.schemas.models.BOM | None` |  |
 | `manifest` | `app.schemas.models.ArtifactManifest | None` |  |
+
+### GeometryCheckReport
+
+Check results + iteration history for a generative-mode design.
+
+| Field | Type | Notes |
+|---|---|---|
+| `design_id` | `<class 'str'>` |  |
+| `checks` | `list[app.schemas.models.CheckResult]` |  |
+| `all_passed` | `<class 'bool'>` |  |
+| `iterations` | `list[str]` | Human-readable log of each optimization iteration |
+| `optimization_note` | `<class 'str'>` |  |
+| `limitations` | `list[str]` |  |
 
 ### GeometryMetrics
 

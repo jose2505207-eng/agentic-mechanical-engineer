@@ -54,6 +54,17 @@ MAX_CAD_COMPLEXITY
   When: Always enforced by the CAD service.
   Example: MAX_CAD_COMPLEXITY=100000
 
+CAD_MAX_ITERATIONS
+  Required: optional (default: 5)
+  What: Iteration budget for the generative-CAD optimization loop (model
+        writes CAD -> build -> engineering checks -> revise). Each
+        iteration is one LLM call plus a sandboxed CAD build, so this is
+        the primary COST control on metered API credits / GPU time.
+  When: Generative mode only (arbitrary-object prompts with an LLM
+        provider configured).
+  How to get: n/a — pick a number; 3-5 sensible, higher burns more credits.
+  Example: CAD_MAX_ITERATIONS=5
+
 ALLOW_EXTERNAL_PART_SEARCH
   Required: optional (default: false)
   What: Boolean gate. External supplier/part APIs (Nexar/Octopart etc.)

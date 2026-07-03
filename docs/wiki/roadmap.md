@@ -29,9 +29,10 @@
       (ADR-009; verified live: quadcopter frame from a drone prompt)
 
 ## V2 — Deeper engineering
-- [ ] Generative-mode simulation feedback loop: feed geometry/physics check
-      results back into the CAD script for optimization iterations (today
-      iteration is error-driven only)
+- [x] Generative-mode sim-feedback optimization loop: engineering checks
+      (validity, envelope, material cost) run on every build; failures are
+      fed back as redesign instructions until convergence or budget
+      (CAD_MAX_ITERATIONS) exhaustion; full iteration history in the report
 - [ ] Component-aware generative design: discoverable real components
       (curated DB + Nexar) placed as mount envelopes in generated geometry
 - [ ] PyBullet: URDF from CAD mass properties, tip-over and clearance in
