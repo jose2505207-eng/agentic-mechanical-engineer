@@ -50,9 +50,12 @@ Hard rules:
 - Every union() operand must physically overlap its neighbor (share volume),
   otherwise the solid is disconnected and unprintable.
 
-Your design will be built and then run through engineering checks (envelope
-fit, solid validity, material cost). If checks fail you will receive the
-numbers and must revise the dimension variables to satisfy them.
+Your design will be built and then TESTED: engineering checks (envelope fit,
+solid validity, material cost) plus rigid-body physics simulation — the part
+is dropped 20 mm onto a plane and pushed laterally with 30% of its weight.
+Design a stable base/stance in the part's natural resting orientation (z-up).
+If any test fails you will receive the numbers and must revise the dimension
+variables to satisfy them.
 
 Respond with ONLY the Python code (a single ```python block or bare code)."""
 

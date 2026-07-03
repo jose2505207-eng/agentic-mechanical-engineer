@@ -63,6 +63,7 @@ What lives where, and why. Human notes go above/below the auto-generated block.
 | `backend/app/simulation/__init__.py` | Deterministic engineering checks. Not FEA. Not certified analysis. |
 | `backend/app/simulation/checks.py` | Deterministic engineering check suite. |
 | `backend/app/simulation/geometry_checks.py` | Deterministic checks for generatively-built geometry. |
+| `backend/app/simulation/physics.py` | Headless physics testing of generated geometry (PyBullet). |
 | `backend/app/simulation/risk.py` | Rule-based risk report generation. |
 | `backend/app/storage/__init__.py` | Artifact storage (local filesystem MVP). |
 | `backend/app/storage/artifacts.py` | Local filesystem artifact store. |
@@ -74,6 +75,7 @@ What lives where, and why. Human notes go above/below the auto-generated block.
 | `backend/tests/test_golden_path.py` | Golden-path regression tests: the demo must produce every artifact, |
 | `backend/tests/test_llm_fallback.py` | AI agent layer tests with mocked model responses. |
 | `backend/tests/test_optimization_loop.py` | Sim-feedback optimization loop: checks drive redesign iterations. |
+| `backend/tests/test_physics_sim.py` | Physics simulation: known-answer stability tests + URDF export. |
 | `backend/tests/test_schemas.py` | Schema contract tests: validation works, bad values are rejected. |
 | `backend/tests/test_scope_and_budget.py` | Honesty rules for out-of-scope prompts and budget overruns. |
 | `backend/tests/test_sourcing_gate.py` | ALLOW_EXTERNAL_PART_SEARCH gate contract: |

@@ -3,6 +3,20 @@
 Two check suites:
 
 - **Robot checks** (template mode, below) — the six physics checks.
+- **Physics simulation** (generative mode, `simulation/physics.py`) —
+  every build is drop-tested (20 mm onto a plane, 3 s) and push-tested
+  (lateral force = 30% of weight at the true CoM — trimesh-computed and
+  passed to Bullet, which otherwise assumes CoM at mesh origin) in headless
+  PyBullet. Results become `physics_settles_upright` and
+  `physics_push_stability` checks that the optimization loop iterates
+  against, plus `physics_results.json`. A `model.urdf` (bounding-box
+  inertia, stated in-file) is exported so the same design loads directly in
+  **Gazebo**, **Webots** (urdf2webots), or PyBullet for deeper testing.
+  Known-answer tests pin the sim: a flat box must survive the push, a tall
+  stick must topple. If PyBullet isn't installed, physics checks are
+  skipped and say so — never faked. Limits: rigid body on a flat plane,
+  convex-hull collision, no actuation/aero — "passes" means it sits
+  stably, not that it functions.
 - **Geometry checks** (generative mode, `simulation/geometry_checks.py`) —
   kernel validity, envelope fit (worst-axis ratio ≤ 1.02), and material
   cost vs budget (solid PLA upper bound). These are the checks the

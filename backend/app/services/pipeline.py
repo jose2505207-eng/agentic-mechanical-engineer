@@ -41,6 +41,7 @@ from app.schemas import (
 from app.simulation.checks import run_checks
 from app.simulation.geometry_checks import LIMITATIONS as GEOMETRY_CHECK_LIMITATIONS
 from app.simulation.geometry_checks import run_geometry_checks
+from app.simulation.physics import export_urdf, physics_to_checks, simulate_stl
 from app.simulation.risk import generate_risk_report
 from app.storage.artifacts import ArtifactStore
 
@@ -94,13 +95,22 @@ def _run_generative(prompt: str, output_dir: Path, design_id: str
                      "Structured requirements with explicit assumptions")
 
     # 2. Generative CAD with sim-feedback: model writes code -> sandbox ->
-    #    engineering checks -> failures fed back for redesign (bounded loop)
+    #    geometry checks + PHYSICS SIM (PyBullet drop/push) -> failures fed
+    #    back for redesign (bounded loop)
     req = state.requirements
+    last_physics: dict = {}
+
+    def check_fn(m):
+        checks = run_geometry_checks(req, m.volume_mm3, m.bbox_mm, m.is_valid_solid)
+        mass_kg = m.volume_mm3 * 1e-9 * PLA_DENSITY_KG_M3
+        phys = simulate_stl(m.stl_path, mass_kg, m.bbox_mm)
+        last_physics["result"] = phys
+        return checks + physics_to_checks(phys)
+
     gen = generate_model(
         prompt, req.max_dimensions_mm,
         stl_path=store.path("model.stl"), step_path=store.path("model.step"),
-        check_fn=lambda m: run_geometry_checks(
-            req, m.volume_mm3, m.bbox_mm, m.is_valid_solid))
+        check_fn=check_fn)
     state.cad_export_note = gen.note
     store.write_text("cad_script.py", gen.script, "py",
                      "Model-written parametric CadQuery source (editable)")
@@ -126,6 +136,17 @@ def _run_generative(prompt: str, output_dir: Path, design_id: str
     )
     store.write_json("geometry_metrics.json", state.geometry,
                      "Measured geometry properties (volume, bbox, printability)")
+
+    # 3b. Physics results (final iteration) + URDF for Gazebo/Webots/PyBullet
+    if last_physics.get("result") is not None:
+        store.write_json("physics_results.json", last_physics["result"],
+                         "PyBullet drop/push simulation of the final geometry")
+    mass_for_urdf = gen.metrics.volume_mm3 * 1e-9 * PLA_DENSITY_KG_M3
+    export_urdf("model.stl", mass_for_urdf, gen.metrics.bbox_mm,
+                store.path("model.urdf"), design_id)
+    store.track_file("model.urdf", "urdf",
+                     "Robot description — load in Gazebo, Webots (urdf2webots) "
+                     "or PyBullet to continue testing")
 
     # 4. Check report — what the optimization loop iterated against
     state.geometry_checks = GeometryCheckReport(

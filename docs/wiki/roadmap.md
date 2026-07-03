@@ -33,6 +33,14 @@
       (validity, envelope, material cost) run on every build; failures are
       fed back as redesign instructions until convergence or budget
       (CAD_MAX_ITERATIONS) exhaustion; full iteration history in the report
+- [x] PyBullet physics in the loop: drop + push stability tests on every
+      build (true-CoM dynamics), results drive redesign; URDF export for
+      Gazebo/Webots continuation
+- [ ] Requirements consistency guard: envelope must accommodate dimensions
+      stated in the prompt (observed: '400mm tall lamp' extracted with a
+      ~350mm envelope -> loop chased an impossible constraint)
+- [ ] Full Gazebo/Webots in-loop integration (containerized headless
+      gz sim / webots-cloud) for actuated, multi-body scenarios
 - [ ] Component-aware generative design: discoverable real components
       (curated DB + Nexar) placed as mount envelopes in generated geometry
 - [ ] PyBullet: URDF from CAD mass properties, tip-over and clearance in

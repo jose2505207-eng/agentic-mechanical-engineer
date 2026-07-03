@@ -21,6 +21,10 @@ dependencies = [
 cad = [
     "cadquery>=2.4",
 ]
+sim = [
+    "pybullet>=3.2",
+    "trimesh>=4.0",
+]
 dev = [
     "pytest>=8.0",
     "ruff>=0.4",

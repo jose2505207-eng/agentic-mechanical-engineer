@@ -12,6 +12,8 @@ install: $(VENV)/bin/activate
 	$(PIP) install -e "backend[dev]"
 	@echo "--- Installing CadQuery (optional but recommended; large download) ---"
 	-$(PIP) install -e "backend[cad]" || echo "WARNING: CadQuery install failed; demo will use labeled placeholder STL writer."
+	@echo "--- Installing physics sim (PyBullet compiles from source; slow) ---"
+	-$(PIP) install -e "backend[sim]" || echo "WARNING: PyBullet install failed; physics checks will be skipped (never faked)."
 	@echo "Install complete. Run: make demo"
 
 demo:
