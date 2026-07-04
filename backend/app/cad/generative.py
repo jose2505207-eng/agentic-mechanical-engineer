@@ -27,6 +27,7 @@ from app.config import get_settings
 from app.llm.provider import LLMUnavailable, complete_text
 from app.schemas import CheckResult
 from app.simulation.geometry_checks import render_check_feedback
+from app.utils.events import emit
 
 logger = logging.getLogger(__name__)
 
@@ -101,13 +102,15 @@ def generate_model(description: str, envelope_mm: tuple[float, float, float],
             f"{task}\n\nYour previous script needs revision. Return the FULL "
             f"corrected script.\n\nPrevious script:\n```python\n{script}\n```\n\n"
             f"Feedback:\n{feedback}")
-        script = _extract_code(complete_text(_SYSTEM, prompt))
+        emit("iteration", f"iteration {attempt}/{budget}: asking model for CAD script...")
+        script = _extract_code(complete_text(_SYSTEM, prompt, purpose=f"cad_script_iter_{attempt}"))
 
         violations = validate_script(script)
         if violations:
             feedback = "Safety validator rejected the script: " + "; ".join(violations)
             last_error = CADScriptError(feedback)
             history.append(f"iteration {attempt}: rejected by safety validator")
+            emit("iteration_failed", history[-1])
             logger.warning("generative CAD attempt %d rejected: %s", attempt, feedback)
             continue
 
@@ -118,6 +121,7 @@ def generate_model(description: str, envelope_mm: tuple[float, float, float],
             last_error = exc
             history.append(f"iteration {attempt}: build failed "
                            f"({str(exc).splitlines()[0][:90]})")
+            emit("iteration_failed", history[-1])
             logger.warning("generative CAD attempt %d failed: %s", attempt, feedback)
             continue
 
@@ -129,6 +133,7 @@ def generate_model(description: str, envelope_mm: tuple[float, float, float],
             f"{'x'.join(f'{b:.0f}' for b in metrics.bbox_mm)} mm); checks "
             f"{len(checks) - len(failed)}/{len(checks)} passed"
             + (f" (failed: {', '.join(c.name for c in failed)})" if failed else ""))
+        emit("iteration_result" if failed else "iteration_ok", history[-1])
 
         best = GenerativeCADResult(
             script=script, metrics=metrics, attempts=attempt,

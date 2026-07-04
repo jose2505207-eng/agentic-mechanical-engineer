@@ -19,6 +19,7 @@ What lives where, and why. Human notes go above/below the auto-generated block.
 | `.claude/agents/security-agent.md` |  |
 | `.claude/agents/simulation-agent.md` |  |
 | `.claude/agents/wiki-agent.md` |  |
+| `.claude/settings.local.json` |  |
 | `.claude/skills/cad-reviewer/SKILL.md` |  |
 | `.claude/skills/engineering-sanity-checker/SKILL.md` |  |
 | `.claude/skills/env-steward/SKILL.md` |  |
@@ -52,6 +53,7 @@ What lives where, and why. Human notes go above/below the auto-generated block.
 | `backend/app/llm/agents.py` | LLM-backed pipeline agents with deterministic fallback. |
 | `backend/app/llm/gates.py` | Feasibility gates for LLM-proposed architectures. |
 | `backend/app/llm/provider.py` | Provider-agnostic LLM client. |
+| `backend/app/llm/telemetry.py` | Per-run LLM call telemetry — the data behind the provenance panel. |
 | `backend/app/main.py` | FastAPI application entrypoint. |
 | `backend/app/reports/__init__.py` | Engineering report generation (Markdown first; PDF later). |
 | `backend/app/reports/generic_markdown.py` | Report renderer for generative-mode designs (arbitrary objects). |
@@ -67,15 +69,18 @@ What lives where, and why. Human notes go above/below the auto-generated block.
 | `backend/app/simulation/risk.py` | Rule-based risk report generation. |
 | `backend/app/storage/__init__.py` | Artifact storage (local filesystem MVP). |
 | `backend/app/storage/artifacts.py` | Local filesystem artifact store. |
+| `backend/app/utils/events.py` | Pipeline progress events, streamed to a per-run sink. |
 | `backend/pyproject.toml` |  |
 | `backend/tests/conftest.py` | Shared fixtures. The pipeline runs once per session into a tmp dir; all |
 | `backend/tests/test_api.py` | API tests using FastAPI's TestClient against a temp storage dir. |
 | `backend/tests/test_architecture_gates.py` | Sprint 8: LLM architecture proposals must pass deterministic feasibility |
+| `backend/tests/test_async_and_provenance.py` | Async pipeline runs, live status feed, provenance ledger, artifact serving. |
 | `backend/tests/test_generative_cad.py` | Generative CAD: sandbox safety, real execution, retry loop, pipeline mode. |
 | `backend/tests/test_golden_path.py` | Golden-path regression tests: the demo must produce every artifact, |
 | `backend/tests/test_llm_fallback.py` | AI agent layer tests with mocked model responses. |
 | `backend/tests/test_optimization_loop.py` | Sim-feedback optimization loop: checks drive redesign iterations. |
 | `backend/tests/test_physics_sim.py` | Physics simulation: known-answer stability tests + URDF export. |
+| `backend/tests/test_provider_routing.py` | Provider routing: fireworks entry, per-provider key requirement, and the |
 | `backend/tests/test_schemas.py` | Schema contract tests: validation works, bad values are rejected. |
 | `backend/tests/test_scope_and_budget.py` | Honesty rules for out-of-scope prompts and budget overruns. |
 | `backend/tests/test_sourcing_gate.py` | ALLOW_EXTERNAL_PART_SEARCH gate contract: |
@@ -102,6 +107,7 @@ What lives where, and why. Human notes go above/below the auto-generated block.
 | `context/master-baseline/12-limitations.md` |  |
 | `context/master-baseline/13-hackathon-mvp.md` |  |
 | `context/master-baseline/14-vision.md` |  |
+| `docker-compose.yml` |  |
 | `docs/api/README.md` |  |
 | `docs/architecture/README.md` |  |
 | `docs/decisions/README.md` |  |
@@ -136,6 +142,8 @@ What lives where, and why. Human notes go above/below the auto-generated block.
 | `frontend/.next/server/next-font-manifest.json` |  |
 | `frontend/.next/server/pages-manifest.json` |  |
 | `frontend/.next/server/server-reference-manifest.json` |  |
+| `frontend/.next/static/css/app/layout.css` |  |
+| `frontend/.next/static/webpack/633457081244afec._.hot-update.json` |  |
 | `frontend/.next/types/package.json` |  |
 | `frontend/README.md` |  |
 | `frontend/app/globals.css` |  |

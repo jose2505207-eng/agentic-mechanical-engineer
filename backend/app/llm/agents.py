@@ -38,6 +38,7 @@ def extract_requirements(prompt: str) -> Requirements:
             _REQUIREMENTS_SYSTEM,
             f"Customer request: {prompt}",
             Requirements,
+            purpose="requirements",
         )
         # The model must echo the prompt faithfully; enforce it.
         req.prompt = prompt
@@ -80,6 +81,7 @@ def propose_architecture(req: Requirements) -> ArchitectureSpec:
             _ARCHITECTURE_SYSTEM,
             "Requirements JSON:\n" + req.model_dump_json(indent=2),
             ArchitectureSpec,
+            purpose="architecture",
         )
     except LLMUnavailable as exc:
         logger.info("LLM unavailable (%s); using deterministic architecture", exc)

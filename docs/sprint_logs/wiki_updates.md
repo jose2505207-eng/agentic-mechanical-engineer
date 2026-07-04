@@ -7,3 +7,4 @@
 - 2026-07-02 22:34 UTC — regenerated: docs/wiki/code-map.md, docs/wiki/schemas.md
 - 2026-07-03 02:33 UTC — regenerated: docs/wiki/code-map.md, docs/wiki/schemas.md
 - 2026-07-03 04:07 UTC — regenerated: docs/wiki/code-map.md
+- 2026-07-04 07:27 UTC — regenerated: docs/wiki/code-map.md

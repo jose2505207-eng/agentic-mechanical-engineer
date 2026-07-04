@@ -25,6 +25,7 @@ from app.cad.chassis import generate_chassis
 from app.cad.generative import generate_model
 from app.cad.sandbox import CADScriptError
 from app.config import get_settings
+from app.llm import telemetry
 from app.llm.agents import extract_requirements, propose_architecture
 from app.llm.provider import LLMUnavailable
 from app.reports.generic_markdown import render_generic_report
@@ -44,6 +45,7 @@ from app.simulation.geometry_checks import run_geometry_checks
 from app.simulation.physics import export_urdf, physics_to_checks, simulate_stl
 from app.simulation.risk import generate_risk_report
 from app.storage.artifacts import ArtifactStore
+from app.utils.events import emit
 
 logger = logging.getLogger(__name__)
 
@@ -71,12 +73,15 @@ def select_mode(prompt: str) -> str:
 def run_pipeline(prompt: str, output_dir: Path, design_id: str | None = None
                  ) -> EngineeringReportState:
     design_id = design_id or f"design-{uuid.uuid4().hex[:8]}"
+    telemetry.start_run()
     mode = select_mode(prompt)
+    emit("stage", f"pipeline started in {mode.upper()} mode")
     if mode == "generative":
         try:
             return _run_generative(prompt, output_dir, design_id)
         except (LLMUnavailable, CADScriptError) as exc:
             logger.warning("generative mode failed (%s); falling back to template", exc)
+            emit("stage", "generative mode failed; falling back to template pipeline")
     return _run_template(prompt, output_dir, design_id)
 
 
@@ -90,6 +95,7 @@ def _run_generative(prompt: str, output_dir: Path, design_id: str
     state = EngineeringReportState(design_id=design_id, prompt=prompt, mode="generative")
 
     # 1. Requirements (LLM w/ deterministic fallback — same station as ever)
+    emit("stage", "extracting requirements...")
     state.requirements = extract_requirements(prompt)
     store.write_json("requirements.json", state.requirements,
                      "Structured requirements with explicit assumptions")
@@ -107,10 +113,12 @@ def _run_generative(prompt: str, output_dir: Path, design_id: str
         last_physics["result"] = phys
         return checks + physics_to_checks(phys)
 
+    emit("stage", "generative CAD: design -> build -> simulate -> revise loop")
     gen = generate_model(
         prompt, req.max_dimensions_mm,
         stl_path=store.path("model.stl"), step_path=store.path("model.step"),
         check_fn=check_fn)
+    emit("stage", "CAD loop finished: " + gen.note)
     state.cad_export_note = gen.note
     store.write_text("cad_script.py", gen.script, "py",
                      "Model-written parametric CadQuery source (editable)")
@@ -201,7 +209,9 @@ def _run_generative(prompt: str, output_dir: Path, design_id: str
     for item in state.risk_report.items:
         if item.severity.value in ("critical", "high") and item.id != "R-000":
             notes.append(f"{item.severity.value.upper()}: {item.title}")
+    _write_provenance(store, design_id, "generative")
     state.manifest = store.write_manifest(design_id, prompt, notes)
+    emit("stage", "pipeline complete")
     return state
 
 
@@ -215,11 +225,13 @@ def _run_template(prompt: str, output_dir: Path, design_id: str
     state = EngineeringReportState(design_id=design_id, prompt=prompt, mode="template")
 
     # 1. Requirements
+    emit("stage", "extracting requirements...")
     state.requirements = extract_requirements(prompt)
     store.write_json("requirements.json", state.requirements,
                      "Structured requirements with explicit assumptions")
 
     # 2. Architecture (LLM proposal gated by feasibility rules, det. fallback)
+    emit("stage", "proposing system architecture...")
     state.architecture = propose_architecture(state.requirements)
     store.write_json("architecture.json", state.architecture,
                      "System architecture: drivetrain, battery, motors, materials")
@@ -230,6 +242,7 @@ def _run_template(prompt: str, output_dir: Path, design_id: str
                      "Validated parameters for CAD template " + state.cad_params.template)
 
     # 4. CAD generation + export
+    emit("stage", "building CAD geometry (template mobile_robot_base_v1)...")
     cad_result = generate_chassis(
         state.cad_params,
         stl_path=store.path("robot_chassis.stl"),
@@ -251,6 +264,7 @@ def _run_template(prompt: str, output_dir: Path, design_id: str
         cad_params=state.cad_params,
         chassis_mass_kg=chassis_mass_kg,
     )
+    emit("stage", "running engineering checks...")
     state.simulation = run_checks(sim_input)
     store.write_json("simulation_results.json", state.simulation,
                      "Deterministic engineering checks (not FEA)")
@@ -291,5 +305,35 @@ def _run_template(prompt: str, output_dir: Path, design_id: str
             notes.append(f"{item.severity.value.upper()}: {item.title}")
     if not cad_result.used_cadquery:
         notes.append("CAD placeholder mode was used: " + cad_result.note)
+    _write_provenance(store, design_id, "template")
     state.manifest = store.write_manifest(design_id, prompt, notes)
+    emit("stage", "pipeline complete")
     return state
+
+
+def _write_provenance(store: ArtifactStore, design_id: str, mode: str) -> None:
+    """provenance.json: which model produced which stage, token counts, and
+    which stages were deterministic code — the honesty ledger of the run."""
+    calls = telemetry.get_calls()
+    deterministic_stages = (
+        ["cad_template_geometry", "engineering_checks", "physics_simulation",
+         "risk_rules", "bom_curation", "report_rendering"]
+        if mode == "template" else
+        ["sandbox_execution", "geometry_checks", "physics_simulation",
+         "risk_rules", "report_rendering"])
+    report = {
+        "design_id": design_id,
+        "mode": mode,
+        "llm_calls": calls,
+        "totals": {
+            "calls": len(calls),
+            "prompt_tokens": sum(c["prompt_tokens"] or 0 for c in calls),
+            "completion_tokens": sum(c["completion_tokens"] or 0 for c in calls),
+        },
+        "deterministic_stages": deterministic_stages,
+        "note": "Stages not listed in llm_calls were produced by deterministic, "
+                "reviewable code — by design, not by accident.",
+    }
+    import json as _json
+    store.write_text("provenance.json", _json.dumps(report, indent=2), "json",
+                     "Per-stage model/provider/token provenance")

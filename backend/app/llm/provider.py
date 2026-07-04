@@ -15,12 +15,14 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from typing import TypeVar
 
 import httpx
 from pydantic import BaseModel
 
 from app.config import get_settings
+from app.llm import telemetry
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +59,8 @@ def _extract_json(text: str) -> dict:
 
 
 def complete_json(
-    system: str, user: str, schema: type[T], timeout_s: float = 60.0, retries: int = 1
+    system: str, user: str, schema: type[T], timeout_s: float = 150.0, retries: int = 1,
+    purpose: str = "",
 ) -> T:
     """Ask the configured model for a JSON object matching `schema`.
 
@@ -68,7 +71,7 @@ def complete_json(
     last_exc: LLMUnavailable | None = None
     for attempt in range(retries + 1):
         try:
-            return _complete_json_once(system, user, schema, timeout_s)
+            return _complete_json_once(system, user, schema, timeout_s, purpose)
         except LLMUnavailable as exc:
             last_exc = exc
             if "no LLM configured" in str(exc) or "not set" in str(exc):
@@ -77,13 +80,14 @@ def complete_json(
     raise last_exc  # type: ignore[misc]
 
 
-def complete_text(system: str, user: str, timeout_s: float = 120.0, retries: int = 1) -> str:
+def complete_text(system: str, user: str, timeout_s: float = 120.0, retries: int = 1,
+                  purpose: str = "") -> str:
     """Free-text completion (used for code generation). Same provider
     dispatch and retry semantics as complete_json, without JSON enforcement."""
     last_exc: LLMUnavailable | None = None
     for attempt in range(retries + 1):
         try:
-            return _chat_once(system, user, timeout_s, json_mode=False)
+            return _chat_once(system, user, timeout_s, json_mode=False, purpose=purpose)
         except LLMUnavailable as exc:
             last_exc = exc
             if "no LLM configured" in str(exc) or "not set" in str(exc):
@@ -92,19 +96,21 @@ def complete_text(system: str, user: str, timeout_s: float = 120.0, retries: int
     raise last_exc  # type: ignore[misc]
 
 
-def _complete_json_once(system: str, user: str, schema: type[T], timeout_s: float) -> T:
+def _complete_json_once(system: str, user: str, schema: type[T], timeout_s: float,
+                        purpose: str = "") -> T:
     instruction = (
         f"{user}\n\nRespond with ONLY a JSON object matching this JSON schema:\n"
         f"{json.dumps(schema.model_json_schema())}"
     )
-    text = _chat_once(system, instruction, timeout_s, json_mode=True)
+    text = _chat_once(system, instruction, timeout_s, json_mode=True, purpose=purpose)
     try:
         return schema.model_validate(_extract_json(text))
     except (json.JSONDecodeError, ValueError) as exc:
         raise LLMUnavailable(f"model output failed schema validation: {exc}") from exc
 
 
-def _chat_once(system: str, user: str, timeout_s: float, json_mode: bool) -> str:
+def _chat_once(system: str, user: str, timeout_s: float, json_mode: bool,
+               purpose: str = "") -> str:
     """One provider round-trip. All model I/O in the app funnels through here."""
     settings = get_settings()
     provider = settings.model_provider.lower()
@@ -112,6 +118,7 @@ def _chat_once(system: str, user: str, timeout_s: float, json_mode: bool) -> str
     if provider == "deterministic":
         raise LLMUnavailable("MODEL_PROVIDER=deterministic — no LLM configured")
 
+    t0 = time.monotonic()
     try:
         if provider == "anthropic":
             if not settings.anthropic_api_key:
@@ -131,7 +138,13 @@ def _chat_once(system: str, user: str, timeout_s: float, json_mode: bool) -> str
                 timeout=timeout_s,
             )
             resp.raise_for_status()
-            return resp.json()["content"][0]["text"]
+            data = resp.json()
+            usage = data.get("usage", {})
+            telemetry.record(purpose, provider, settings.model_name or "claude-fable-5",
+                             "https://api.anthropic.com/v1/messages",
+                             usage.get("input_tokens"), usage.get("output_tokens"),
+                             time.monotonic() - t0)
+            return data["content"][0]["text"]
 
         if provider in OPENAI_COMPAT_BASE_URLS:
             key = getattr(settings, _PROVIDER_KEY_ATTR.get(provider, ""), "") \
@@ -158,8 +171,15 @@ def _chat_once(system: str, user: str, timeout_s: float, json_mode: bool) -> str
                 timeout=timeout_s,
             )
             resp.raise_for_status()
-            return resp.json()["choices"][0]["message"]["content"]
+            data = resp.json()
+            usage = data.get("usage") or {}
+            telemetry.record(purpose, provider, settings.model_name, base_url,
+                             usage.get("prompt_tokens"), usage.get("completion_tokens"),
+                             time.monotonic() - t0)
+            return data["choices"][0]["message"]["content"]
 
         raise LLMUnavailable(f"unknown MODEL_PROVIDER '{provider}'")
     except httpx.HTTPError as exc:
+        telemetry.record(purpose, provider, settings.model_name, "n/a", None, None,
+                         time.monotonic() - t0, status=f"failed: {exc}")
         raise LLMUnavailable(f"provider request failed: {exc}") from exc
