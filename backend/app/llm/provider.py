@@ -29,9 +29,18 @@ T = TypeVar("T", bound=BaseModel)
 OPENAI_COMPAT_BASE_URLS = {
     "openai": "https://api.openai.com/v1",
     "openrouter": "https://openrouter.ai/api/v1",
+    "fireworks": "https://api.fireworks.ai/inference/v1",
     "ollama": "http://localhost:11434/v1",
+    # vllm/local base URLs are overridden by settings.vllm_base_url at
+    # request time (AMD Developer Cloud instance); these are dev defaults.
     "vllm": "http://localhost:8001/v1",
     "local": "http://localhost:8001/v1",
+}
+
+_PROVIDER_KEY_ATTR = {
+    "openai": "openai_api_key",
+    "openrouter": "openrouter_api_key",
+    "fireworks": "fireworks_api_key",
 }
 
 
@@ -125,10 +134,12 @@ def _chat_once(system: str, user: str, timeout_s: float, json_mode: bool) -> str
             return resp.json()["content"][0]["text"]
 
         if provider in OPENAI_COMPAT_BASE_URLS:
-            key = settings.openrouter_api_key if provider == "openrouter" \
-                else settings.openai_api_key
-            if provider in ("openai", "openrouter") and not key:
+            key = getattr(settings, _PROVIDER_KEY_ATTR.get(provider, ""), "") \
+                if provider in _PROVIDER_KEY_ATTR else settings.openai_api_key
+            if provider in _PROVIDER_KEY_ATTR and not key:
                 raise LLMUnavailable(f"API key for provider '{provider}' not set")
+            base_url = settings.vllm_base_url if provider in ("vllm", "local") \
+                else OPENAI_COMPAT_BASE_URLS[provider]
             body = {
                 "model": settings.model_name,
                 "messages": [
@@ -141,7 +152,7 @@ def _chat_once(system: str, user: str, timeout_s: float, json_mode: bool) -> str
                 # glitch tokens mid-object (observed: '"payload_kg": II').
                 body["response_format"] = {"type": "json_object"}
             resp = httpx.post(
-                f"{OPENAI_COMPAT_BASE_URLS[provider]}/chat/completions",
+                f"{base_url}/chat/completions",
                 headers={"Authorization": f"Bearer {key or 'none'}"},
                 json=body,
                 timeout=timeout_s,

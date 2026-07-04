@@ -100,6 +100,32 @@ OPENROUTER_API_KEY
   Link: https://openrouter.ai/keys
   Example: OPENROUTER_API_KEY=your-openrouter-key-here
 
+FIREWORKS_API_KEY
+  Required: optional (required only if MODEL_PROVIDER=fireworks)
+  What: API key for Fireworks AI serverless inference (hackathon sponsor
+        platform; $50 credits for participants, +$50 for AMD AI Developer
+        Program members).
+  How to get: fireworks.ai -> sign in -> account settings -> API keys.
+  Link: https://fireworks.ai
+  Note (verified 2026-07-03): serverless catalogs vary per account — list
+        yours via GET /inference/v1/models; Gemma may not be serverless.
+  Example: FIREWORKS_API_KEY=your-fireworks-key-here
+
+VLLM_BASE_URL
+  Required: optional (default: http://localhost:8001/v1)
+  What: Base URL of a self-hosted OpenAI-compatible inference server, used
+        when MODEL_PROVIDER=vllm or local. For the hackathon this points at
+        a vLLM server running Gemma on an AMD Developer Cloud Instinct
+        instance (ROCm).
+  When: MODEL_PROVIDER=vllm | local.
+  How to get: PREREQUISITE — AMD AI Developer Program membership
+        (https://www.amd.com/en/developer.html, manual approval 2-3 days),
+        then provision an instance at https://devcloud.amd.com/ and run
+        `vllm serve google/gemma-3-27b-it` (needs HF_TOKEN with the Gemma
+        license accepted). The AMD devcloud API token itself is a
+        deployment credential, not read by this app.
+  Example: VLLM_BASE_URL=http://203.0.113.7:8000/v1
+
 # Note: MODEL_PROVIDER=ollama / vllm / local use a base URL convention
 # (OPENAI-compatible endpoints); no key is needed for a local server.
 # If your local server needs a key, reuse OPENAI_API_KEY with the

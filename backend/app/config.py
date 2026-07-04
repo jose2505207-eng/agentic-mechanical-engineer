@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     openai_api_key: str = ""
     openrouter_api_key: str = ""
+    fireworks_api_key: str = ""
+    # Base URL for self-hosted OpenAI-compatible inference (vllm/local
+    # providers) — point at the AMD Developer Cloud instance when provisioned.
+    vllm_base_url: str = "http://localhost:8001/v1"
 
     # External part sourcing (used only when allow_external_part_search=True)
     nexar_client_id: str = ""
