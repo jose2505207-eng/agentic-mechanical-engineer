@@ -1,0 +1,32 @@
+# Agentic Mechanical Engineer — one-command demo:
+#   docker compose up --build
+# Dashboard: http://localhost:3000   API docs: http://localhost:8000/docs
+#
+# Runs fully offline in deterministic mode with NO .env file. Drop a .env at
+# the repo root (see env-space) to enable LLM providers / generative CAD.
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      STORAGE_DIR: /data/outputs
+    volumes:
+      - outputs-data:/data/outputs
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      BACKEND_URL: http://backend:8000
+    depends_on:
+      - backend
+
+volumes:
+  outputs-data:

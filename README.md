@@ -23,12 +23,26 @@ checks, a risk report, a costed BOM, and a written engineering report.
    └── artifact_manifest.json   index of everything above
 ```
 
-## Quickstart
+## Quickstart (Docker — recommended)
+
+```bash
+git clone https://github.com/jose2505207-eng/agentic-mechanical-engineer
+cd agentic-mechanical-engineer
+docker compose up --build
+```
+
+Dashboard: **http://localhost:3000** · API docs: http://localhost:8000/docs.
+Runs fully offline in deterministic mode with no configuration. To enable
+the AI designer (generative CAD, LLM requirements/architecture), copy
+`.env.example` to `.env` and set an LLM provider (see [`env-space`](env-space)) —
+compose picks it up automatically.
+
+## Quickstart (local dev)
 
 ```bash
 make install    # venv + deps (CadQuery is a big download)
 make demo       # the line above, for real, in under a second
-make test       # 29 tests validating the golden path
+make test       # 66 tests validating the golden path
 make api        # FastAPI at http://localhost:8000/docs
 ```
 

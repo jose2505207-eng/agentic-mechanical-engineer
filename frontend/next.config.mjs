@@ -1,13 +1,16 @@
 /** Proxy API calls to the FastAPI backend so the browser stays same-origin
- *  (no CORS needed). Backend must be running on :8000 (`make api`). */
+ *  (no CORS needed). BACKEND_URL is set by docker-compose (http://backend:8000);
+ *  defaults to localhost:8000 for `make api` + `make frontend` development. */
+const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:8000";
+
 const nextConfig = {
-  // Generative-CAD runs iterate the model up to 3x and can take ~5 min;
-  // don't let the dev proxy 504 them.
+  // Generative-CAD runs iterate the model and can take minutes;
+  // don't let the proxy 504 them.
   experimental: { proxyTimeout: 600_000 },
   async rewrites() {
     return [
-      { source: "/api/:path*", destination: "http://localhost:8000/api/:path*" },
-      { source: "/health", destination: "http://localhost:8000/health" },
+      { source: "/api/:path*", destination: `${BACKEND_URL}/api/:path*` },
+      { source: "/health", destination: `${BACKEND_URL}/health` },
     ];
   },
 };
